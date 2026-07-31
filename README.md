@@ -1,36 +1,38 @@
-# Astro Starter Kit: Basics
+# Excel Formula Visualizer
 
-```sh
-npm create astro@latest -- --template basics
-```
+[![Netlify Status](https://api.netlify.com/api/v1/badges/13afaf17-9680-4f97-aae5-85c94c9b71f4/deploy-status)](https://app.netlify.com/projects/excel-formula-visualizer/deploys)
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+A modern web application for visualizing and understanding Excel formulas. Paste any Excel formula and instantly see a clear, interactive breakdown of its components, dependencies, and evaluation order.
 
-## 🚀 Project Structure
+## 🚀 Tech Stack
 
-Inside of your Astro project, you'll see the following folders and files:
+- **Framework:** [Astro](https://astro.build) v7
+- **Styling:** [Tailwind CSS](https://tailwindcss.com) v4
+- **Fonts:** Inter (body), JetBrains Mono (code)
+- **Deployment:** Netlify
+
+## 📁 Project Structure
 
 ```text
 /
 ├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+│   └── favicon.*
+├── src/
+│   ├── assets/
+│   ├── components/
+│   ├── layouts/
+│   │   └── Layout.astro
+│   ├── pages/
+│   │   └── index.astro
+│   └── styles/
+│       └── global.css
+├── astro.config.mjs
+├── package.json
+├── tsconfig.json
+└── README.md
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
-
 ## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
 
 | Command                   | Action                                           |
 | :------------------------ | :----------------------------------------------- |
@@ -39,8 +41,13 @@ All commands are run from the root of the project, from a terminal:
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
 | `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
 
-## 👀 Want to learn more?
+## ✨ Features
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+- **Parse & Structure** — Automatically parse any Excel formula into a structured tree of functions, operators, references, and literals.
+- **Evaluation Order** — See the step-by-step evaluation order with color-coded groupings.
+- **Interactive Reference Map** — Click on any cell reference to highlight its location and trace dependencies.
+
+## 📄 License
+
+MIT
