@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+'use client';
+
 import type { NodeTranslation } from '../lib/translate';
 
 interface ExplanationPanelProps {
@@ -25,19 +26,18 @@ function TranslationNode({
       <button
         type="button"
         className={`
-          w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-150
-          ${isHighlighted ? 'bg-blue-100 font-medium text-blue-900 ring-1 ring-blue-300' : 'text-gray-700 hover:bg-gray-100'}
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+          w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
+          ${isHighlighted ? 'bg-accent-subtle font-medium text-ink dark:bg-amber-950/30' : 'text-ink-muted hover:bg-border/40'}
         `}
         onMouseEnter={() => onHoverNode(node.nodeId)}
         onMouseLeave={() => onHoverNode(null)}
         aria-current={isHighlighted ? 'true' : undefined}
       >
-        <span className="font-mono text-xs text-gray-400 mr-2">→</span>
+        <span className="mr-2 font-mono text-xs text-ink-muted/60">→</span>
         {node.text}
       </button>
-      {hasChildren && (
-        <ul className="ml-4 mt-1 space-y-1 border-l border-gray-200 pl-3">
+      {hasChildren ? (
+        <ul className="ml-4 mt-1 space-y-1 border-l border-border pl-3 dark:border-stone-800">
           {node.children.map((child) => (
             <TranslationNode
               key={child.nodeId}
@@ -47,7 +47,7 @@ function TranslationNode({
             />
           ))}
         </ul>
-      )}
+      ) : null}
     </li>
   );
 }
@@ -58,22 +58,10 @@ export default function ExplanationPanel({
   highlightedNodeId,
   onHoverNode,
 }: ExplanationPanelProps) {
-  // Collect all node IDs for the "copy explanation" feature
-  const allTranslations = useMemo(() => {
-    const texts: string[] = [];
-    function collect(n: NodeTranslation) {
-      texts.push(n.text);
-      n.children.forEach(collect);
-    }
-    collect(nodeTranslations);
-    return texts;
-  }, [nodeTranslations]);
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(translation);
     } catch {
-      // Fallback: select text
       const el = document.getElementById('full-explanation');
       if (el) {
         const range = document.createRange();
@@ -87,28 +75,26 @@ export default function ExplanationPanel({
 
   return (
     <div className="space-y-6">
-      {/* Full explanation */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-xl border border-border bg-surface-elevated p-4 dark:bg-stone-950">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-sm font-semibold text-gray-900">Full Explanation</h3>
+          <h3 className="text-sm font-semibold text-ink">Full Explanation</h3>
           <button
             type="button"
             onClick={handleCopy}
-            className="shrink-0 rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="shrink-0 rounded-md border border-border bg-surface px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:border-accent hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-stone-900"
             aria-label="Copy explanation to clipboard"
           >
             Copy
           </button>
         </div>
-        <p id="full-explanation" className="mt-3 text-sm leading-relaxed text-gray-700">
+        <p id="full-explanation" className="mt-3 text-sm leading-relaxed text-ink-muted">
           {translation}
         </p>
       </div>
 
-      {/* Per-node breakdown */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <h3 className="text-sm font-semibold text-gray-900">Step-by-Step Breakdown</h3>
-        <p className="mt-1 text-xs text-gray-500">Hover over any line to highlight it in the tree.</p>
+      <div className="rounded-xl border border-border bg-surface-elevated p-4 dark:bg-stone-950">
+        <h3 className="text-sm font-semibold text-ink">Step-by-Step Breakdown</h3>
+        <p className="mt-1 text-xs text-ink-muted">Hover over any line to highlight it in the visualization.</p>
         <ul className="mt-3 space-y-1" role="list" aria-label="Node-by-node explanation">
           <TranslationNode
             node={nodeTranslations}

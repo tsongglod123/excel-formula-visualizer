@@ -63,8 +63,7 @@ Convert each node to a human-readable sentence:
 - Show tooltip with reference details (range, value if available)
 - Visual connection lines between related references
 
-## Export & Share
+## Share
 
-- Export visualization as PNG image
 - Share via URL with encoded formula in query parameter
-- Print-friendly styles for the visualization page
+- Copy URL button on the visualization page

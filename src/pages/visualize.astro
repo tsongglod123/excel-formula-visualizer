@@ -1,11 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import VisualTree from '../components/VisualTree';
-import ExplanationPanel from '../components/ExplanationPanel';
+import FormulaEditor from '../components/FormulaEditor.astro';
+import CopyUrlButton from '../components/CopyUrlButton.astro';
+import VisualizerClient from '../components/VisualizerClient';
 import { parse, FormulaError, type ASTNode } from '../lib/parser';
 import { translate, translateNode, type NodeTranslation } from '../lib/translate';
 
-// Server-rendered for dynamic query parameter support
 export const prerender = false;
 
 const formula = Astro.url.searchParams.get('formula');
@@ -16,9 +16,9 @@ let nodeTranslations: NodeTranslation | null = null;
 let error: string | null = null;
 
 if (!formula) {
-  error = 'No formula provided. Please enter a formula to visualize.';
+  error = 'No formula provided. Enter one below to start visualizing.';
 } else if (!formula.trim().startsWith('=')) {
-  error = 'Formula must start with "=". Please check your input and try again.';
+  error = 'Formula must start with "=". Check your input and try again.';
 } else {
   try {
     ast = parse(formula);
@@ -36,173 +36,61 @@ if (!formula) {
 
 <Layout title={formula ? `Visualize: ${formula}` : 'Visualize Formula'} currentPath="/visualize">
   {error ? (
-    <div class="mx-auto max-w-2xl py-12 text-center sm:py-16">
-      <div class="rounded-xl border border-red-200 bg-red-50 p-6 sm:p-8">
-        <svg class="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-        </svg>
-        <h1 class="mt-4 text-xl font-bold text-red-800 sm:text-2xl">Unable to Visualize Formula</h1>
-        <p class="mt-2 text-sm text-red-600">{error}</p>
+    <div class="mx-auto max-w-3xl space-y-6">
+      <div class="rounded-xl border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/20 sm:p-8">
+        <div class="flex items-start gap-4">
+          <svg class="h-6 w-6 shrink-0 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <div>
+            <h1 class="text-lg font-bold text-red-900 dark:text-red-200 sm:text-xl">Unable to Visualize Formula</h1>
+            <p class="mt-1 text-sm text-red-700 dark:text-red-300">{error}</p>
+          </div>
+        </div>
         {formula && (
-          <p class="mt-3 rounded-lg bg-red-100 px-3 py-2 font-mono text-sm text-red-800">
+          <p class="mt-4 break-all rounded-lg bg-red-100 px-3 py-2 font-mono text-sm text-red-900 dark:bg-red-950/40 dark:text-red-200">
             {formula}
           </p>
         )}
-        <div class="mt-6">
-          <a
-            href="/"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Back to Home
-          </a>
+      </div>
+
+      <div class="rounded-xl border border-border bg-surface-elevated p-5 dark:bg-stone-950">
+        <label for="visualize-formula-input" class="block text-sm font-semibold text-ink">Paste a New Formula</label>
+        <p class="mt-1 text-xs text-ink-muted">Enter an Excel formula starting with = to visualize it instantly.</p>
+        <div class="mt-4">
+          <FormulaEditor formula={formula ?? ''} id="visualize-formula-input" />
         </div>
       </div>
     </div>
   ) : (
     <div class="space-y-6">
-      {/* Header with formula and actions */}
-      <div class="flex flex-col gap-4 border-b border-gray-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
-        <div class="min-w-0 flex-1">
-          <h1 class="text-lg font-bold text-gray-900 sm:text-xl">Formula Visualization</h1>
-          <p class="mt-2 break-all rounded-lg bg-gray-100 px-3 py-2 font-mono text-sm text-gray-800">
-            {formula}
-          </p>
+      <section class="rounded-xl border border-border bg-surface-elevated p-5 dark:bg-stone-950" aria-labelledby="formula-label">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div class="min-w-0 flex-1">
+            <h1 id="formula-label" class="text-sm font-semibold text-ink-muted">Current Formula</h1>
+            <p class="mt-1 break-all rounded-lg bg-surface px-3 py-2 font-mono text-sm text-ink dark:bg-stone-900">
+              {formula}
+            </p>
+          </div>
+          <div class="flex shrink-0 items-center gap-2">
+            <CopyUrlButton />
+          </div>
         </div>
-        <div class="flex shrink-0 items-center gap-2">
-          <button
-            id="copy-url-btn"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            aria-label="Copy shareable URL"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
-            </svg>
-            Copy URL
-          </button>
-          <button
-            id="export-png-btn"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            aria-label="Export as PNG"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            Export PNG
-          </button>
-          <button
-            id="print-btn"
-            type="button"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-            aria-label="Print visualization"
-          >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
-            </svg>
-            Print
-          </button>
-        </div>
-      </div>
 
-      {/* Two-column layout: Tree + Explanation */}
-      {ast && nodeTranslations && (
-        <div class="grid gap-6 lg:grid-cols-2">
-          <section aria-label="Visual tree">
-            <VisualTree
-              client:load
-              ast={ast}
-              highlightedNodeId={null}
-              onHoverNode={() => {}}
-              selectedReference={null}
-              onSelectReference={() => {}}
-            />
-          </section>
-          <section aria-label="Plain English explanation">
-            <ExplanationPanel
-              client:load
-              translation={translation}
-              nodeTranslations={nodeTranslations}
-              highlightedNodeId={null}
-              onHoverNode={() => {}}
-            />
-          </section>
+        <div class="mt-4 border-t border-border pt-4">
+          <label for="visualize-formula-input" class="sr-only">Edit or paste a new formula</label>
+          <FormulaEditor formula={formula ?? ''} id="visualize-formula-input" buttonText="Update" />
         </div>
+      </section>
+
+      {ast && nodeTranslations && (
+        <VisualizerClient
+          client:load
+          ast={ast}
+          translation={translation}
+          nodeTranslations={nodeTranslations}
+        />
       )}
     </div>
   )}
 </Layout>
-
-<script>
-  // Copy URL button
-  document.getElementById('copy-url-btn')?.addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      const btn = document.getElementById('copy-url-btn');
-      if (btn) {
-        const original = btn.innerHTML;
-        btn.innerHTML = '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Copied!';
-        setTimeout(() => { btn.innerHTML = original; }, 2000);
-      }
-    } catch {
-      // Fallback
-    }
-  });
-
-  // Print button
-  document.getElementById('print-btn')?.addEventListener('click', () => {
-    window.print();
-  });
-
-  // Export PNG button — dynamic import to avoid bundling on initial load
-  document.getElementById('export-png-btn')?.addEventListener('click', async () => {
-    const btn = document.getElementById('export-png-btn');
-    if (!btn) return;
-    const original = btn.innerHTML;
-    btn.innerHTML = '<svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg> Exporting...';
-    try {
-      const { default: html2canvas } = await import('html2canvas');
-      const target = document.querySelector('.grid.gap-6') || document.querySelector('main');
-      if (!target) throw new Error('No target found');
-      const canvas = await html2canvas(target as HTMLElement, {
-        backgroundColor: '#ffffff',
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      });
-      const link = document.createElement('a');
-      link.download = 'formula-visualization.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-      btn.innerHTML = '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg> Done!';
-    } catch {
-      btn.innerHTML = '<svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg> Failed';
-    }
-    setTimeout(() => { btn.innerHTML = original; }, 2000);
-  });
-</script>
-
-<style is:global>
-  @media print {
-    nav,
-    footer,
-    #copy-url-btn,
-    #export-png-btn,
-    #print-btn,
-    .no-print {
-      display: none !important;
-    }
-    main {
-      padding: 0 !important;
-    }
-    body {
-      background: white !important;
-    }
-    .border-gray-200 {
-      border-color: #e5e7eb !important;
-    }
-  }
-</style>

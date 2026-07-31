@@ -1,0 +1,46 @@
+---
+export interface Props {
+  label?: string;
+  copiedLabel?: string;
+}
+
+const { label = 'Copy URL', copiedLabel = 'Copied' } = Astro.props;
+---
+
+<button
+  type="button"
+  data-copy-label={label}
+  data-copied-label={copiedLabel}
+  class="copy-url-btn inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-xs font-medium text-ink-muted transition hover:border-accent hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+  aria-live="polite"
+>
+  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+  </svg>
+  <span class="copy-url-label">{label}</span>
+</button>
+
+<script is:inline>
+  (function () {
+    document.querySelectorAll('.copy-url-btn').forEach((button) => {
+      if (!(button instanceof HTMLButtonElement)) return;
+      const label = button.dataset.copyLabel || 'Copy URL';
+      const copiedLabel = button.dataset.copiedLabel || 'Copied';
+      const labelSpan = button.querySelector('.copy-url-label');
+
+      button.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(window.location.href);
+          if (labelSpan) labelSpan.textContent = copiedLabel;
+          button.disabled = true;
+          setTimeout(() => {
+            if (labelSpan) labelSpan.textContent = label;
+            button.disabled = false;
+          }, 2000);
+        } catch {
+          // Fail silently — the URL is already visible in the address bar.
+        }
+      });
+    });
+  })();
+</script>

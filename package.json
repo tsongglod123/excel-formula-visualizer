@@ -20,7 +20,6 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "astro": "^7.1.6",
-    "html2canvas": "^1.4.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwindcss": "^4.3.3"
@@ -30,6 +29,8 @@
     "sharp@0.34.5": true
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.10"
   }
 }

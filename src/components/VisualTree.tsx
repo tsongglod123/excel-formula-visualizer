@@ -1,3 +1,5 @@
+'use client';
+
 import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
 import type {
   ASTNode,
@@ -8,8 +10,6 @@ import type {
   ParentheticalNode,
 } from '../lib/parser';
 
-// ─── Props ───
-
 interface VisualTreeProps {
   ast: ASTNode;
   highlightedNodeId: string | null;
@@ -18,52 +18,43 @@ interface VisualTreeProps {
   onSelectReference: (ref: string | null) => void;
 }
 
-// ─── Node type colors ───
-
 const TYPE_COLORS = {
   function: {
-    bg: 'bg-blue-50',
-    border: 'border-blue-300',
-    text: 'text-blue-800',
-    badge: 'bg-blue-100 text-blue-700',
-    hover: 'hover:border-blue-400',
-    ring: 'ring-blue-300',
+    border: 'border-l-sky-400 dark:border-l-sky-500',
+    bg: 'bg-sky-50/50 dark:bg-sky-950/20',
+    text: 'text-sky-800 dark:text-sky-200',
+    badge: 'bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-200',
+    ring: 'ring-sky-400/40',
   },
   operator: {
-    bg: 'bg-amber-50',
-    border: 'border-amber-300',
-    text: 'text-amber-800',
-    badge: 'bg-amber-100 text-amber-700',
-    hover: 'hover:border-amber-400',
-    ring: 'ring-amber-300',
+    border: 'border-l-amber-400 dark:border-l-amber-500',
+    bg: 'bg-amber-50/50 dark:bg-amber-950/20',
+    text: 'text-amber-800 dark:text-amber-200',
+    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200',
+    ring: 'ring-amber-400/40',
   },
   reference: {
-    bg: 'bg-purple-50',
-    border: 'border-purple-300',
-    text: 'text-purple-800',
-    badge: 'bg-purple-100 text-purple-700',
-    hover: 'hover:border-purple-400',
-    ring: 'ring-purple-300',
+    border: 'border-l-violet-400 dark:border-l-violet-500',
+    bg: 'bg-violet-50/50 dark:bg-violet-950/20',
+    text: 'text-violet-800 dark:text-violet-200',
+    badge: 'bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-200',
+    ring: 'ring-violet-400/40',
   },
   literal: {
-    bg: 'bg-green-50',
-    border: 'border-green-300',
-    text: 'text-green-800',
-    badge: 'bg-green-100 text-green-700',
-    hover: 'hover:border-green-400',
-    ring: 'ring-green-300',
+    border: 'border-l-emerald-400 dark:border-l-emerald-500',
+    bg: 'bg-emerald-50/50 dark:bg-emerald-950/20',
+    text: 'text-emerald-800 dark:text-emerald-200',
+    badge: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200',
+    ring: 'ring-emerald-400/40',
   },
   parenthetical: {
-    bg: 'bg-gray-50',
-    border: 'border-gray-300',
-    text: 'text-gray-700',
-    badge: 'bg-gray-100 text-gray-600',
-    hover: 'hover:border-gray-400',
-    ring: 'ring-gray-300',
+    border: 'border-l-stone-300 dark:border-l-stone-600',
+    bg: 'bg-stone-100/50 dark:bg-stone-900/30',
+    text: 'text-stone-700 dark:text-stone-300',
+    badge: 'bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
+    ring: 'ring-stone-400/40',
   },
 } as const;
-
-// ─── Helpers ───
 
 function getChildren(node: ASTNode): ASTNode[] {
   switch (node.type) {
@@ -101,33 +92,26 @@ function getNodeLabel(node: ASTNode): string {
   }
 }
 
-/** Compute evaluation order (post-order: children before parent) */
 function computeEvaluationOrder(node: ASTNode): string[] {
   const order: string[] = [];
   function walk(n: ASTNode) {
-    for (const child of getChildren(n)) {
-      walk(child);
-    }
+    for (const child of getChildren(n)) walk(child);
     order.push(n.id);
   }
   walk(node);
   return order;
 }
 
-/** Get all node IDs in a subtree */
 function getSubtreeIds(node: ASTNode): Set<string> {
   const ids = new Set<string>();
   function walk(n: ASTNode) {
     ids.add(n.id);
-    for (const child of getChildren(n)) {
-      walk(child);
-    }
+    for (const child of getChildren(n)) walk(child);
   }
   walk(node);
   return ids;
 }
 
-/** Find a node by ID */
 function findNode(root: ASTNode, id: string): ASTNode | null {
   if (root.id === id) return root;
   for (const child of getChildren(root)) {
@@ -137,20 +121,16 @@ function findNode(root: ASTNode, id: string): ASTNode | null {
   return null;
 }
 
-/** Get parent map: childId → parentId */
 function getParentMap(root: ASTNode): Map<string, string> {
   const map = new Map<string, string>();
   function walk(n: ASTNode, parentId?: string) {
     if (parentId) map.set(n.id, parentId);
-    for (const child of getChildren(n)) {
-      walk(child, n.id);
-    }
+    for (const child of getChildren(n)) walk(child, n.id);
   }
   walk(root);
   return map;
 }
 
-/** Get ancestor chain (from root to node, exclusive) */
 function getAncestors(root: ASTNode, nodeId: string): Set<string> {
   const parentMap = getParentMap(root);
   const ancestors = new Set<string>();
@@ -162,7 +142,6 @@ function getAncestors(root: ASTNode, nodeId: string): Set<string> {
   return ancestors;
 }
 
-/** Check if a node or any of its descendants has a reference matching the given reference string */
 function subtreeHasReference(node: ASTNode, ref: string): boolean {
   if (node.type === 'reference') {
     return (node as ReferenceNode).reference === ref;
@@ -170,12 +149,9 @@ function subtreeHasReference(node: ASTNode, ref: string): boolean {
   return getChildren(node).some((child) => subtreeHasReference(child, ref));
 }
 
-// ─── Sub-Components ───
-
 interface NodeBlockProps {
   node: ASTNode;
   root: ASTNode;
-  depth: number;
   evalOrder: Map<string, number>;
   currentStep: number | null;
   hoveredId: string | null;
@@ -190,7 +166,6 @@ interface NodeBlockProps {
 function NodeBlock({
   node,
   root,
-  depth,
   evalOrder,
   currentStep,
   hoveredId,
@@ -220,66 +195,31 @@ function NodeBlock({
     }
   }, [node, onClickRef]);
 
+  const rowId = `node-${node.id}`;
+
   return (
     <div
       className={`relative transition-opacity duration-200 ${isDimmed ? 'opacity-30' : ''}`}
       role="treeitem"
       aria-expanded={hasChildren ? !isCollapsed : undefined}
-      aria-selected={isHovered}
     >
-      <button
-        type="button"
+      <div
         className={`
-          group relative flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm
-          transition-all duration-200
-          ${colors.bg} ${colors.border} ${colors.text} ${colors.hover}
-          ${isHovered ? `ring-2 ${colors.ring} shadow-md` : ''}
-          ${isCurrentStep ? 'ring-2 ring-blue-500 shadow-md animate-pulse' : ''}
-          ${isSelectedRef ? 'ring-2 ring-purple-500 shadow-md' : ''}
-          ${containsSelectedRef && !isSelectedRef ? 'border-purple-300' : ''}
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1
+          group flex items-center gap-2 rounded-r-lg border border-border border-l-4 ${colors.border} ${colors.bg}
+          px-3 py-2 text-left text-sm transition-all duration-200
+          ${isHovered || isCurrentStep || isSelectedRef ? `ring-2 ${colors.ring}` : ''}
+          ${containsSelectedRef ? 'border-violet-400 dark:border-violet-500' : ''}
         `}
         onMouseEnter={() => onHover(node.id)}
         onMouseLeave={() => onHover(null)}
-        onClick={handleClick}
-        aria-label={`${node.type}: ${getNodeLabel(node)}${stepNumber !== undefined ? `, evaluation step ${stepNumber}` : ''}`}
       >
-        {/* Evaluation step badge */}
-        {stepNumber !== undefined && (
-          <span
-            className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${colors.badge}`}
-            aria-label={`Step ${stepNumber}`}
-          >
-            {stepNumber}
-          </span>
-        )}
-
-        {/* Node label */}
-        <span className="font-mono font-medium">{getNodeLabel(node)}</span>
-
-        {/* Type badge */}
-        <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}>
-          {node.type}
-        </span>
-
-        {/* Collapse/expand toggle */}
         {hasChildren && (
-          <span
-            role="button"
-            tabIndex={0}
-            className="shrink-0 rounded p-0.5 hover:bg-white/50 focus:outline-none focus:ring-1 focus:ring-blue-400"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleCollapse(node.id);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                e.stopPropagation();
-                onToggleCollapse(node.id);
-              }
-            }}
+          <button
+            type="button"
+            className="shrink-0 rounded p-0.5 text-ink-muted transition hover:bg-white/50 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent dark:hover:bg-stone-800"
+            onClick={() => onToggleCollapse(node.id)}
             aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+            aria-controls={rowId}
           >
             <svg
               className={`h-4 w-4 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
@@ -291,19 +231,40 @@ function NodeBlock({
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
             </svg>
-          </span>
+          </button>
         )}
-      </button>
 
-      {/* Children */}
+        <button
+          type="button"
+          className="flex flex-1 items-center gap-2 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded px-1 -ml-1"
+          onClick={handleClick}
+          onMouseEnter={() => onHover(node.id)}
+          onMouseLeave={() => onHover(null)}
+          aria-label={`${node.type}: ${getNodeLabel(node)}${stepNumber !== undefined ? `, evaluation step ${stepNumber}` : ''}`}
+        >
+          {stepNumber !== undefined && (
+            <span
+              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${colors.badge}`}
+            >
+              {stepNumber}
+            </span>
+          )}
+
+          <span className={`font-mono font-medium ${colors.text}`}>{getNodeLabel(node)}</span>
+
+          <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${colors.badge}`}>
+            {node.type}
+          </span>
+        </button>
+      </div>
+
       {hasChildren && !isCollapsed && (
-        <div className={`ml-4 mt-1 space-y-1 border-l-2 ${colors.border} pl-3 sm:ml-6 sm:pl-4`}>
+        <div id={rowId} className="ml-4 mt-1 space-y-1 border-l border-border pl-3 sm:ml-6 sm:pl-4">
           {children.map((child) => (
             <NodeBlock
               key={child.id}
               node={child}
               root={root}
-              depth={depth + 1}
               evalOrder={evalOrder}
               currentStep={currentStep}
               hoveredId={hoveredId}
@@ -321,8 +282,6 @@ function NodeBlock({
   );
 }
 
-// ─── Main Component ───
-
 export default function VisualTree({
   ast,
   highlightedNodeId,
@@ -333,9 +292,9 @@ export default function VisualTree({
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const treeRef = useRef<HTMLDivElement>(null);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Compute evaluation order
   const evalOrder = useMemo(() => {
     const order = computeEvaluationOrder(ast);
     return new Map(order.map((id, i) => [id, i + 1]));
@@ -343,7 +302,6 @@ export default function VisualTree({
 
   const totalSteps = evalOrder.size;
 
-  // Compute dimmed nodes when hovering
   const dimmedIds = useMemo(() => {
     if (!highlightedNodeId) return new Set<string>();
     const hoveredNode = findNode(ast, highlightedNodeId);
@@ -352,7 +310,6 @@ export default function VisualTree({
     const ancestors = getAncestors(ast, highlightedNodeId);
     const subtree = getSubtreeIds(hoveredNode);
 
-    // Nodes that are NOT ancestors, NOT in subtree, and NOT the hovered node itself are dimmed
     const allIds = new Set<string>();
     function collectIds(n: ASTNode) {
       allIds.add(n.id);
@@ -369,7 +326,6 @@ export default function VisualTree({
     return dimmed;
   }, [ast, highlightedNodeId]);
 
-  // Step-by-step controls
   const stepForward = useCallback(() => {
     setCurrentStep((prev) => {
       if (prev === null) return 1;
@@ -389,7 +345,6 @@ export default function VisualTree({
     setIsPlaying(false);
   }, []);
 
-  // Play/pause
   useEffect(() => {
     if (isPlaying) {
       playIntervalRef.current = setInterval(() => {
@@ -424,9 +379,8 @@ export default function VisualTree({
     [onSelectReference, selectedReference]
   );
 
-  // Keyboard navigation for step-by-step
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+  const handleTreeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         stepForward();
@@ -436,20 +390,18 @@ export default function VisualTree({
       } else if (e.key === 'Escape') {
         resetSteps();
       }
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [stepForward, stepBackward, resetSteps]);
+    },
+    [stepForward, stepBackward, resetSteps]
+  );
 
   return (
     <div className="space-y-4">
-      {/* Controls */}
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface-elevated p-3 dark:bg-stone-950">
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             aria-label={isPlaying ? 'Pause step-by-step' : 'Play step-by-step'}
           >
             {isPlaying ? (
@@ -472,7 +424,7 @@ export default function VisualTree({
             type="button"
             onClick={stepBackward}
             disabled={currentStep === null}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
             aria-label="Step backward"
           >
             ←
@@ -481,7 +433,7 @@ export default function VisualTree({
             type="button"
             onClick={stepForward}
             disabled={currentStep !== null && currentStep >= totalSteps}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
             aria-label="Step forward"
           >
             →
@@ -490,46 +442,46 @@ export default function VisualTree({
             type="button"
             onClick={resetSteps}
             disabled={currentStep === null}
-            className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
             aria-label="Reset steps"
           >
             Reset
           </button>
         </div>
-        <div className="ml-auto text-xs text-gray-500" aria-live="polite">
+        <div className="ml-auto text-xs text-ink-muted" aria-live="polite">
           {currentStep !== null ? `Step ${currentStep} of ${totalSteps}` : `${totalSteps} steps total`}
         </div>
       </div>
 
-      {/* Legend */}
       <div className="flex flex-wrap gap-2 text-xs" aria-label="Color legend">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2.5 py-1 font-medium text-blue-800">
-          <span className="h-2 w-2 rounded-full bg-blue-500" aria-hidden="true"></span> Function
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-medium text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-sky-500" aria-hidden="true"></span> Function
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-1 font-medium text-amber-800">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-medium text-ink-muted">
           <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Operator
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-2.5 py-1 font-medium text-purple-800">
-          <span className="h-2 w-2 rounded-full bg-purple-500" aria-hidden="true"></span> Reference
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-medium text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-violet-500" aria-hidden="true"></span> Reference
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 font-medium text-green-800">
-          <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden="true"></span> Literal
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-medium text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Literal
         </span>
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 font-medium text-gray-700">
-          <span className="h-2 w-2 rounded-full bg-gray-400" aria-hidden="true"></span> Parentheses
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-medium text-ink-muted">
+          <span className="h-2 w-2 rounded-full bg-stone-400" aria-hidden="true"></span> Parentheses
         </span>
       </div>
 
-      {/* Tree */}
       <div
-        className="max-h-[600px] overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-4"
+        ref={treeRef}
+        tabIndex={0}
+        onKeyDown={handleTreeKeyDown}
+        className="max-h-[600px] overflow-auto rounded-xl border border-border bg-surface-elevated p-4 outline-none focus-visible:ring-2 focus-visible:ring-accent dark:bg-stone-950"
         role="tree"
         aria-label="Formula visualization tree"
       >
         <NodeBlock
           node={ast}
           root={ast}
-          depth={0}
           evalOrder={evalOrder}
           currentStep={currentStep}
           hoveredId={highlightedNodeId}
@@ -542,11 +494,10 @@ export default function VisualTree({
         />
       </div>
 
-      {/* Keyboard hints */}
-      <p className="text-xs text-gray-400">
-        Use <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">←</kbd> and{' '}
-        <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">→</kbd> to step through evaluation,{' '}
-        <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Esc</kbd> to reset
+      <p className="text-xs text-ink-muted/70">
+        Focus the tree and use <kbd className="rounded bg-border px-1 py-0.5 font-mono text-[10px] dark:bg-stone-800">←</kbd> and{' '}
+        <kbd className="rounded bg-border px-1 py-0.5 font-mono text-[10px] dark:bg-stone-800">→</kbd> to step through evaluation,{' '}
+        <kbd className="rounded bg-border px-1 py-0.5 font-mono text-[10px] dark:bg-stone-800">Esc</kbd> to reset
       </p>
     </div>
   );

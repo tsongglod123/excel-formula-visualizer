@@ -1,0 +1,76 @@
+---
+export interface Props {
+  formula?: string;
+  action?: string;
+  label?: string;
+  placeholder?: string;
+  buttonText?: string;
+  id?: string;
+}
+
+const {
+  formula = '',
+  action = '/visualize',
+  label = 'Excel formula',
+  placeholder = 'e.g. =SUM(A1:A10)…',
+  buttonText = 'Visualize',
+  id = 'formula-input',
+} = Astro.props;
+---
+
+<form class="flex flex-col gap-3 sm:flex-row sm:gap-3" action={action} method="GET" novalidate>
+  <label for={id} class="sr-only">{label}</label>
+  <input
+    {id}
+    name="formula"
+    type="text"
+    value={formula}
+    placeholder={placeholder}
+    autocomplete="off"
+    spellcheck="false"
+    inputmode="text"
+    required
+    class="min-w-0 flex-1 rounded-lg border border-border bg-surface-elevated px-4 py-3 text-sm text-ink placeholder:text-ink-muted/60 shadow-sm transition focus:border-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/30 dark:border-stone-800 dark:bg-stone-950"
+  />
+  <button
+    type="submit"
+    class="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+  >
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+    </svg>
+    {buttonText}
+  </button>
+</form>
+
+<script is:inline>
+  // Client-side validation so users get immediate feedback before the GET request.
+  (function () {
+    const forms = document.querySelectorAll('form[action="/visualize"]');
+    forms.forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        const input = form.querySelector('input[name="formula"]');
+        if (!(input instanceof HTMLInputElement)) return;
+        const value = input.value.trim();
+        if (!value) {
+          event.preventDefault();
+          input.setCustomValidity('Enter a formula to visualize.');
+          input.reportValidity();
+          return;
+        }
+        if (!value.startsWith('=')) {
+          event.preventDefault();
+          input.setCustomValidity('Formula must start with "=".');
+          input.reportValidity();
+          return;
+        }
+        input.setCustomValidity('');
+      });
+
+      form.addEventListener('input', (event) => {
+        const input = event.target;
+        if (input instanceof HTMLInputElement) input.setCustomValidity('');
+      });
+    });
+  })();
+</script>

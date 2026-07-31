@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/Footer.astro';
 
@@ -10,16 +11,22 @@ export interface Props {
   currentPath?: string;
 }
 
-const { title, description = 'A modern tool for visualizing and understanding Excel formulas.', lang = 'en', currentPath = '/' } = Astro.props;
+const {
+  title,
+  description = 'A modern tool for visualizing and understanding Excel formulas.',
+  lang = 'en',
+  currentPath = '/',
+} = Astro.props;
 ---
 
 <!doctype html>
-<html lang={lang}>
+<html lang={lang} data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#fafaf9" />
 
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -33,37 +40,54 @@ const { title, description = 'A modern tool for visualizing and understanding Ex
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
 
-    <!-- Google Fonts: Inter for body text, JetBrains Mono for formulas -->
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&family=Spline+Sans+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
 
     <title>{title}</title>
+
+    <ClientRouter />
   </head>
-  <body class="min-h-screen bg-white font-sans text-gray-900 antialiased">
-    <!-- Skip to main content link for accessibility -->
+
+  <!-- Prevent flash of wrong theme before hydration. -->
+  <script is:inline>
+    (function () {
+      const stored = (function () {
+        try {
+          return localStorage.getItem('theme');
+        } catch {
+          return null;
+        }
+      })();
+      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = stored || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#fafaf9');
+    })();
+  </script>
+
+  <body class="min-h-screen bg-surface font-sans text-ink antialiased">
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:fixed focus:inset-x-0 focus:top-0 focus:z-50 focus:bg-blue-600 focus:p-4 focus:text-center focus:text-sm focus:font-semibold focus:text-white focus:outline-none"
+      class="sr-only focus:not-sr-only focus:fixed focus:inset-x-0 focus:top-0 focus:z-50 focus:bg-accent focus:p-4 focus:text-center focus:text-sm focus:font-semibold focus:text-white focus:outline-none"
     >
       Skip to main content
     </a>
 
-    <div class="mx-auto flex min-h-screen max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
-      <!-- Site Header -->
-      <header class="border-b border-gray-200 py-4">
+    <div class="mx-auto flex min-h-screen max-w-6xl flex-col px-4 sm:px-6 lg:px-8">
+      <header class="border-b border-border py-4">
         <Navbar currentPath={currentPath} />
       </header>
 
-      <!-- Main Content Area -->
-      <main id="main-content" class="flex-1 py-6 sm:py-8">
+      <main id="main-content" class="flex-1 py-8 sm:py-10">
         <slot />
       </main>
 
-      <!-- Site Footer -->
       <Footer />
     </div>
   </body>
@@ -74,12 +98,12 @@ const { title, description = 'A modern tool for visualizing and understanding Ex
     scroll-behavior: smooth;
   }
 
-  body {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  /* Keep theme-color in sync when toggled by the theme button. */
+  html[data-theme="dark"] meta[name="theme-color"] {
+    content: '#0c0a09';
   }
 
-  code,
-  pre {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  html[data-theme="light"] meta[name="theme-color"] {
+    content: '#fafaf9';
   }
 </style>
