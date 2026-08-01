@@ -32,11 +32,17 @@ const { class: className = '' } = Astro.props;
     const toggle = document.getElementById('theme-toggle');
     if (!toggle) return;
 
+    function updateMetaThemeColor(theme) {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#fafaf9');
+    }
+
     toggle.addEventListener('click', () => {
       const html = document.documentElement;
       const isDark = html.getAttribute('data-theme') === 'dark';
       const next = isDark ? 'light' : 'dark';
       html.setAttribute('data-theme', next);
+      updateMetaThemeColor(next);
       try {
         localStorage.setItem('theme', next);
       } catch {

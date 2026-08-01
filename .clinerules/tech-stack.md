@@ -13,8 +13,8 @@
 - Import `global.css` in layout components to make Tailwind styles available site-wide
 
 ## Fonts
-- **Inter** — Body text (clean, readable sans-serif), registered in Tailwind via `@theme` directive
-- **JetBrains Mono** — Code/formula display (developer-friendly monospace)
+- **Bricolage Grotesque** — Body text (distinctive, characterful sans-serif), registered in Tailwind via `@theme` directive in `global.css`
+- **Spline Sans Mono** — Code/formula display (readable monospace), loaded via Google Fonts in `Layout.astro`
 
 ## Deployment
 - **Netlify** — Continuous deployment from GitHub

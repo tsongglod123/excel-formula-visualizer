@@ -75,5 +75,7 @@ Converts each AST node into a human-readable sentence.
 ## Page Structure
 
 - **`/` (index.astro)** — Landing page with Hero, FeatureCards, example visualization, and stats
-- **`/visualize` (visualize.astro)** — Formula input → visualization output page (not yet created)
-- **Additional pages** — `/how-it-works`, `/about` (as needed)
+- **`/visualize` (visualize.astro)** — Formula input → visualization output page (server-rendered, reads `?formula=` query param)
+- **`/how-it-works` (how-it-works.astro)** — Explains the three-layer parse → visualize → explain process
+- **`/about` (about.astro)** — Project mission and GitHub link
+- **`/404` (404.astro)** — Not found page

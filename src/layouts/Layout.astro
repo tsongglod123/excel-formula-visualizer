@@ -20,8 +20,26 @@ const {
 ---
 
 <!doctype html>
-<html lang={lang} data-theme="light">
+<html lang={lang}>
   <head>
+    <!-- Prevent flash of wrong theme before content renders. -->
+    <script is:inline>
+      (function () {
+        const stored = (function () {
+          try {
+            return localStorage.getItem('theme');
+          } catch {
+            return null;
+          }
+        })();
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const theme = stored || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#fafaf9');
+      })();
+    </script>
+
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
@@ -52,24 +70,6 @@ const {
 
     <ClientRouter />
   </head>
-
-  <!-- Prevent flash of wrong theme before hydration. -->
-  <script is:inline>
-    (function () {
-      const stored = (function () {
-        try {
-          return localStorage.getItem('theme');
-        } catch {
-          return null;
-        }
-      })();
-      const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      const theme = stored || (prefersDark ? 'dark' : 'light');
-      document.documentElement.setAttribute('data-theme', theme);
-      const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#fafaf9');
-    })();
-  </script>
 
   <body class="min-h-screen bg-surface font-sans text-ink antialiased">
     <a

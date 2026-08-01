@@ -9,6 +9,7 @@ import type {
   LiteralNode,
   ParentheticalNode,
 } from '../lib/parser';
+import { getArgName } from '../lib/functionArgs';
 
 interface FormulaOutlineProps {
   ast: ASTNode;
@@ -213,7 +214,8 @@ function OutlineNode({
 }) {
   const style = STYLES[node.type];
   const stepNumber = evalOrder.get(node.id);
-  const isCurrentStep = currentStep !== null && stepNumber !== undefined && stepNumber <= currentStep;
+  const isCurrentStep = currentStep !== null && stepNumber === currentStep;
+  const isCompleted = currentStep !== null && stepNumber !== undefined && stepNumber < currentStep;
   const isHovered = highlightedNodeId === node.id;
   const isDimmed = dimmedIds.has(node.id);
   const isSelectedRef =
@@ -226,6 +228,7 @@ function OutlineNode({
     transition-opacity duration-200
     ${isDimmed ? 'opacity-30' : 'opacity-100'}
     ${isHovered || isCurrentStep || isSelectedRef ? `ring-2 ${style.ring}` : ''}
+    ${isCompleted ? 'opacity-70' : ''}
     ${containsSelectedRef ? 'border-violet-400 dark:border-violet-500' : ''}
   `;
 
@@ -371,7 +374,7 @@ function OutlineNode({
           <div className="space-y-2 border-t border-border px-3 py-3 dark:border-stone-800">
             {fn.args.map((arg, i) => (
               <div key={arg.id} className="flex items-start gap-3">
-                <span className="mt-2 text-[10px] font-medium uppercase tracking-wide text-ink-muted/70">arg {i + 1}</span>
+                <span className="mt-2 text-[10px] font-medium uppercase tracking-wide text-ink-muted/70">{getArgName(fn.name, i, fn.args.length)}</span>
                 <div className="flex-1">
                   <OutlineNode
                     node={arg}
