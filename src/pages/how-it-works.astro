@@ -28,7 +28,7 @@ import Hero from '../components/Hero.astro';
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-ink">Paste Your Formula</h3>
             <p class="mt-2 text-sm leading-relaxed text-ink-muted">
-              Enter any Excel formula into the input field. Whether it's a simple <code class="rounded bg-border/50 px-1.5 py-0.5 text-xs font-mono dark:bg-stone-800">=SUM(A1:A10)</code>
+              Enter any Excel formula into the input field. Whether it's a simple <code class="rounded bg-border/50 px-1.5 py-0.5 text-xs font-mono">=SUM(A1:A10)</code>
               or a complex nested expression, the parser handles it all. The tool supports over 50 Excel functions
               including logical, lookup, math, text, and date functions.
             </p>
@@ -47,15 +47,15 @@ import Hero from '../components/Hero.astro';
             <ul class="mt-3 space-y-2 text-sm text-ink-muted">
               <li class="flex items-start gap-2">
                 <span class="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-sky-500" aria-hidden="true"></span>
-                <span><strong class="text-ink">Functions</strong> — <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">IF</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">SUM</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">VLOOKUP</code>, and more</span>
+                <span><strong class="text-ink">Functions</strong> — <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">IF</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">SUM</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">VLOOKUP</code>, and more</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-violet-500" aria-hidden="true"></span>
-                <span><strong class="text-ink">Cell References</strong> — Relative (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">A1</code>), absolute (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">$A$1</code>), and ranges (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">A1:A10</code>)</span>
+                <span><strong class="text-ink">Cell References</strong> — Relative (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">A1</code>), absolute (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">$A$1</code>), and ranges (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">A1:A10</code>)</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-hidden="true"></span>
-                <span><strong class="text-ink">Operators</strong> — Arithmetic (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">+</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">-</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">*</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">/</code>), comparison (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">{'>'}</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">{'<'}</code>), and text concatenation (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono dark:bg-stone-800">{'&'}</code>)</span>
+                <span><strong class="text-ink">Operators</strong> — Arithmetic (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">+</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">-</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">*</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">/</code>), comparison (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">{'>'}</code>, <code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">{'<'}</code>), and text concatenation (<code class="rounded bg-border/50 px-1 py-0.5 text-xs font-mono">{'&'}</code>)</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-emerald-500" aria-hidden="true"></span>

@@ -31,37 +31,37 @@ interface StyleSet {
 
 const STYLES: Record<ASTNode['type'], StyleSet> = {
   function: {
-    border: 'border-l-sky-400 dark:border-l-sky-500',
-    bg: 'bg-sky-50/50 dark:bg-sky-950/20',
-    text: 'text-sky-800 dark:text-sky-200',
+    border: 'border-l-sky-400',
+    bg: 'bg-sky-50/50',
+    text: 'text-sky-800',
     dot: 'bg-sky-500',
     ring: 'ring-sky-400/40',
   },
   operator: {
-    border: 'border-l-amber-400 dark:border-l-amber-500',
-    bg: 'bg-amber-50/50 dark:bg-amber-950/20',
-    text: 'text-amber-800 dark:text-amber-200',
+    border: 'border-l-amber-400',
+    bg: 'bg-amber-50/50',
+    text: 'text-amber-800',
     dot: 'bg-amber-500',
     ring: 'ring-amber-400/40',
   },
   reference: {
-    border: 'border-l-violet-400 dark:border-l-violet-500',
-    bg: 'bg-violet-50/50 dark:bg-violet-950/20',
-    text: 'text-violet-800 dark:text-violet-200',
+    border: 'border-l-violet-400',
+    bg: 'bg-violet-50/50',
+    text: 'text-violet-800',
     dot: 'bg-violet-500',
     ring: 'ring-violet-400/40',
   },
   literal: {
-    border: 'border-l-emerald-400 dark:border-l-emerald-500',
-    bg: 'bg-emerald-50/50 dark:bg-emerald-950/20',
-    text: 'text-emerald-800 dark:text-emerald-200',
+    border: 'border-l-emerald-400',
+    bg: 'bg-emerald-50/50',
+    text: 'text-emerald-800',
     dot: 'bg-emerald-500',
     ring: 'ring-emerald-400/40',
   },
   parenthetical: {
-    border: 'border-l-stone-300 dark:border-l-stone-600',
-    bg: 'bg-stone-100/50 dark:bg-stone-900/30',
-    text: 'text-stone-700 dark:text-stone-300',
+    border: 'border-l-stone-300',
+    bg: 'bg-stone-100/50',
+    text: 'text-stone-700',
     dot: 'bg-stone-400',
     ring: 'ring-stone-400/40',
   },
@@ -229,7 +229,7 @@ function OutlineNode({
     ${isDimmed ? 'opacity-30' : 'opacity-100'}
     ${isHovered || isCurrentStep || isSelectedRef ? `ring-2 ${style.ring}` : ''}
     ${isCompleted ? 'opacity-70' : ''}
-    ${containsSelectedRef ? 'border-violet-400 dark:border-violet-500' : ''}
+    ${containsSelectedRef ? 'border-violet-400' : ''}
   `;
 
   const handleClick = () => {
@@ -250,7 +250,7 @@ function OutlineNode({
         aria-label={`${node.type}: ${getNodeLabel(node)}${stepNumber !== undefined ? `, step ${stepNumber}` : ''}`}
       >
         {stepNumber !== undefined && (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border dark:bg-stone-900 dark:ring-stone-700">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
             {stepNumber}
           </span>
         )}
@@ -265,7 +265,6 @@ function OutlineNode({
     const children = getChildren(op);
     const word = operatorWord(op.operator);
 
-    // Simple binary operator with leaf operands — render inline.
     if (op.right && children.every(isLeaf)) {
       return (
         <div
@@ -277,7 +276,7 @@ function OutlineNode({
         >
           <div className="flex flex-wrap items-center gap-2 px-3 py-2">
             {stepNumber !== undefined && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border dark:bg-stone-900 dark:ring-stone-700">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
                 {stepNumber}
               </span>
             )}
@@ -311,7 +310,6 @@ function OutlineNode({
       );
     }
 
-    // Nested operator — render stacked.
     return (
       <div
         className={baseCard}
@@ -322,14 +320,14 @@ function OutlineNode({
       >
         <div className="flex items-center gap-2 px-3 py-2">
           {stepNumber !== undefined && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border dark:bg-stone-900 dark:ring-stone-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
               {stepNumber}
             </span>
           )}
           <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true"></span>
           <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">{word}</span>
         </div>
-        <div className="space-y-2 border-t border-border px-3 py-3 dark:border-stone-800">
+        <div className="space-y-2 border-t border-border px-3 py-3">
           {children.map((child) => (
             <OutlineNode
               key={child.id}
@@ -362,7 +360,7 @@ function OutlineNode({
       >
         <div className="flex items-center gap-2 px-3 py-2">
           {stepNumber !== undefined && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border dark:bg-stone-900 dark:ring-stone-700">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
               {stepNumber}
             </span>
           )}
@@ -371,7 +369,7 @@ function OutlineNode({
           <span className="text-xs text-ink-muted">function</span>
         </div>
         {fn.args.length > 0 && (
-          <div className="space-y-2 border-t border-border px-3 py-3 dark:border-stone-800">
+          <div className="space-y-2 border-t border-border px-3 py-3">
             {fn.args.map((arg, i) => (
               <div key={arg.id} className="flex items-start gap-3">
                 <span className="mt-2 text-[10px] font-medium uppercase tracking-wide text-ink-muted/70">{getArgName(fn.name, i, fn.args.length)}</span>
@@ -397,7 +395,6 @@ function OutlineNode({
     );
   }
 
-  // parenthetical
   const paren = node as ParentheticalNode;
   return (
     <div
@@ -409,14 +406,14 @@ function OutlineNode({
     >
       <div className="flex items-center gap-2 px-3 py-2">
         {stepNumber !== undefined && (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border dark:bg-stone-900 dark:ring-stone-700">
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
             {stepNumber}
           </span>
         )}
         <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true"></span>
         <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">group</span>
       </div>
-      <div className="border-t border-border px-3 py-3 dark:border-stone-800">
+      <div className="border-t border-border px-3 py-3">
         <OutlineNode
           node={paren.expression}
           root={root}
@@ -487,7 +484,7 @@ export default function FormulaOutline({
         </span>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface-elevated p-4 dark:bg-stone-950">
+      <div className="rounded-xl border border-border bg-surface-elevated p-4">
         <OutlineNode
           node={ast}
           root={ast}

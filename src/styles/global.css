@@ -1,16 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
-
-/* Ensure color-scheme follows the selected theme. */
-html {
-  color-scheme: light;
-}
-
-html[data-theme="dark"] {
-  color-scheme: dark;
-}
-
 @theme {
   --color-surface: #fafaf9;
   --color-surface-elevated: #ffffff;
@@ -25,17 +14,6 @@ html[data-theme="dark"] {
   --font-family-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
-[data-theme="dark"] {
-  --color-surface: #0c0a09;
-  --color-surface-elevated: #1c1917;
-  --color-ink: #fafaf9;
-  --color-ink-muted: #a8a29e;
-  --color-border: #292524;
-  --color-accent: #f59e0b;
-  --color-accent-hover: #d97706;
-  --color-accent-subtle: #451a03;
-}
-
 @layer base {
   *,
   *::before,
@@ -47,10 +25,6 @@ html[data-theme="dark"] {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;
-  }
-
-  html[data-theme="dark"] {
-    color-scheme: dark;
   }
 
   body {

@@ -86,7 +86,6 @@ function FormulaSpan({ node, currentId }: { node: ASTNode; currentId: string | n
       const op = node as OperatorNode;
       const symbol = operatorSymbol(op.operator);
       if (!op.right) {
-        // Unary operators are rendered directly next to the operand.
         if (op.operator === '%') {
           return wrap(
             <>
@@ -173,7 +172,7 @@ export default function EvaluatorBar({
   const description = currentNode ? translationMap.get(currentNode) ?? getStepAction(findNode(ast, currentNode)!) : null;
 
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-surface-elevated p-4 dark:bg-stone-950">
+    <div className="space-y-3 rounded-xl border border-border bg-surface-elevated p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
@@ -202,7 +201,7 @@ export default function EvaluatorBar({
             type="button"
             onClick={onStepBackward}
             disabled={currentStep === null}
-            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Step backward"
           >
             ←
@@ -211,7 +210,7 @@ export default function EvaluatorBar({
             type="button"
             onClick={onStepForward}
             disabled={currentStep !== null && currentStep >= totalSteps}
-            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Step forward"
           >
             →
@@ -220,7 +219,7 @@ export default function EvaluatorBar({
             type="button"
             onClick={onReset}
             disabled={currentStep === null}
-            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50 dark:bg-stone-950"
+            className="rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-ink-muted transition hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Reset evaluation"
           >
             Reset
@@ -231,7 +230,7 @@ export default function EvaluatorBar({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-surface p-3 dark:bg-stone-900">
+      <div className="rounded-lg border border-border bg-surface p-3">
         <p className="text-xs font-semibold text-ink-muted">Formula being evaluated</p>
         <div className="mt-2 break-all font-mono text-sm leading-relaxed text-ink">
           <span className="text-ink-muted">=</span>
@@ -240,7 +239,7 @@ export default function EvaluatorBar({
       </div>
 
       {currentStep !== null && description && (
-        <div className="rounded-lg border-l-4 border-accent bg-accent-subtle/50 p-3 dark:bg-amber-950/20">
+        <div className="rounded-lg border-l-4 border-accent bg-accent-subtle/50 p-3">
           <p className="text-xs font-semibold text-ink">Current step</p>
           <p className="mt-1 text-sm leading-relaxed text-ink">{description}</p>
         </div>

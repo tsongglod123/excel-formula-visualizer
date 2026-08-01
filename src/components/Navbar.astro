@@ -1,6 +1,4 @@
 ---
-import ThemeToggle from './ThemeToggle.astro';
-
 export interface Props {
   currentPath?: string;
 }
@@ -42,7 +40,7 @@ const links = [
           class:list={[
             'rounded-lg px-4 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             currentPath === link.href
-              ? 'bg-accent-subtle text-accent dark:text-amber-400'
+              ? 'bg-accent-subtle text-accent'
               : 'text-ink-muted hover:bg-border hover:text-ink',
           ]}
           aria-current={currentPath === link.href ? 'page' : undefined}
@@ -51,12 +49,9 @@ const links = [
         </a>
       ))
     }
-    <div class="ml-1 h-6 w-px bg-border" aria-hidden="true"></div>
-    <ThemeToggle />
   </div>
 
   <div class="flex items-center gap-2 sm:hidden">
-    <ThemeToggle />
     <button
       id="mobile-menu-toggle"
       type="button"
@@ -89,7 +84,7 @@ const links = [
           class:list={[
             'rounded-lg px-4 py-3 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-accent',
             currentPath === link.href
-              ? 'bg-accent-subtle text-accent dark:text-amber-400'
+              ? 'bg-accent-subtle text-accent'
               : 'text-ink-muted hover:bg-border hover:text-ink',
           ]}
           aria-current={currentPath === link.href ? 'page' : undefined}

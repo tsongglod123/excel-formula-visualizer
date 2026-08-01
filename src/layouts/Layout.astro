@@ -22,24 +22,6 @@ const {
 <!doctype html>
 <html lang={lang}>
   <head>
-    <!-- Prevent flash of wrong theme before content renders. -->
-    <script is:inline>
-      (function () {
-        const stored = (function () {
-          try {
-            return localStorage.getItem('theme');
-          } catch {
-            return null;
-          }
-        })();
-        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const theme = stored || (prefersDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
-        const meta = document.querySelector('meta[name="theme-color"]');
-        if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#fafaf9');
-      })();
-    </script>
-
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
@@ -96,14 +78,5 @@ const {
 <style is:global>
   html {
     scroll-behavior: smooth;
-  }
-
-  /* Keep theme-color in sync when toggled by the theme button. */
-  html[data-theme="dark"] meta[name="theme-color"] {
-    content: '#0c0a09';
-  }
-
-  html[data-theme="light"] meta[name="theme-color"] {
-    content: '#fafaf9';
   }
 </style>
