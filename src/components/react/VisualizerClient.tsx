@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import type { ASTNode } from '../../lib/ast';
+import { useState, useCallback, useMemo } from 'react';
+import { ASTNode, ASTTraverser } from '../../lib/ast';
 import type { NodeTranslation } from '../../lib/translate';
 import { useEvaluation } from './hooks/useEvaluation';
 import FormulaOutline from './FormulaOutline';
@@ -14,7 +14,16 @@ interface VisualizerClientProps {
   nodeTranslations: NodeTranslation;
 }
 
-export default function VisualizerClient({ ast, translation, nodeTranslations }: VisualizerClientProps) {
+export default function VisualizerClient({ ast: rawAst, translation, nodeTranslations }: VisualizerClientProps) {
+  // The AST crosses the Astro island boundary as a serialized plain object
+  // (methods/getters are stripped). Revive it into proper class instances so
+  // the polymorphic getChildren()/getLabel()/instanceof logic works. On the
+  // server render it is already an instance, so this is a safe no-op there.
+  const ast = useMemo(
+    () => (rawAst instanceof ASTNode ? rawAst : ASTTraverser.deserializeAST(rawAst)),
+    [rawAst]
+  );
+
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [selectedReference, setSelectedReference] = useState<string | null>(null);
 

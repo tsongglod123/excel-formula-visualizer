@@ -96,29 +96,38 @@ const links = [
   </div>
 </div>
 
-<script is:inline>
-  (function () {
+<script>
+  function setMenuState(toggle: HTMLElement, menu: HTMLElement, open: boolean): void {
+    const openIcon = toggle.querySelector('.menu-open-icon');
+    const closeIcon = toggle.querySelector('.menu-close-icon');
+    menu.classList.toggle('hidden', !open);
+    toggle.setAttribute('aria-expanded', String(open));
+    openIcon?.classList.toggle('hidden', open);
+    closeIcon?.classList.toggle('hidden', !open);
+  }
+
+  // astro:page-load fires on the initial page load and after every client-side
+  // navigation from <ClientRouter />. Inline scripts are deduplicated across
+  // page swaps and never re-run, which left the swapped-in toggle button with
+  // no click listener after navigation. Re-wire it on every page load instead.
+  document.addEventListener('astro:page-load', () => {
     const toggle = document.getElementById('mobile-menu-toggle');
     const menu = document.getElementById('mobile-menu');
     if (!toggle || !menu) return;
-    const openIcon = toggle.querySelector('.menu-open-icon');
-    const closeIcon = toggle.querySelector('.menu-close-icon');
-
-    function setOpen(open) {
-      menu.classList.toggle('hidden', !open);
-      toggle.setAttribute('aria-expanded', String(open));
-      openIcon?.classList.toggle('hidden', open);
-      closeIcon?.classList.toggle('hidden', !open);
-    }
 
     toggle.addEventListener('click', () => {
-      setOpen(menu.classList.contains('hidden'));
+      setMenuState(toggle, menu, menu.classList.contains('hidden'));
     });
+  });
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !menu.classList.contains('hidden')) {
-        setOpen(false);
-      }
-    });
-  })();
+  // Registered once at module scope. Elements are looked up when the event
+  // fires, so this always operates on the current DOM — even after page swaps.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const toggle = document.getElementById('mobile-menu-toggle');
+    const menu = document.getElementById('mobile-menu');
+    if (toggle && menu && !menu.classList.contains('hidden')) {
+      setMenuState(toggle, menu, false);
+    }
+  });
 </script>

@@ -20,8 +20,11 @@ const { label = 'Copy URL', copiedLabel = 'Copied' } = Astro.props;
   <span class="copy-url-label">{label}</span>
 </button>
 
-<script is:inline>
-  (function () {
+<script>
+  // astro:page-load fires on the initial page load and after every client-side
+  // navigation from <ClientRouter />, so buttons are re-wired whenever fresh
+  // markup is swapped in (inline scripts are deduplicated and never re-run).
+  document.addEventListener('astro:page-load', () => {
     document.querySelectorAll('.copy-url-btn').forEach((button) => {
       if (!(button instanceof HTMLButtonElement)) return;
       const label = button.dataset.copyLabel || 'Copy URL';
@@ -42,5 +45,5 @@ const { label = 'Copy URL', copiedLabel = 'Copied' } = Astro.props;
         }
       });
     });
-  })();
+  });
 </script>

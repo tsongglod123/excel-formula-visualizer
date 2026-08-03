@@ -43,9 +43,12 @@ const {
   </button>
 </form>
 
-<script is:inline>
+<script>
   // Client-side validation so users get immediate feedback before the GET request.
-  (function () {
+  // astro:page-load fires on the initial page load and after every client-side
+  // navigation from <ClientRouter />, so validation is re-attached whenever
+  // fresh markup is swapped in (inline scripts are deduplicated and never re-run).
+  document.addEventListener('astro:page-load', () => {
     const forms = document.querySelectorAll('form[action="/visualize"]');
     forms.forEach((form) => {
       form.addEventListener('submit', (event) => {
@@ -72,5 +75,5 @@ const {
         if (input instanceof HTMLInputElement) input.setCustomValidity('');
       });
     });
-  })();
+  });
 </script>

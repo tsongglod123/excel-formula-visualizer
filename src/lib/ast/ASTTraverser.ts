@@ -1,4 +1,9 @@
 import { ASTNode } from './ASTNode';
+import type { ASTNodeObject } from './ASTNode';
+import { FunctionNode } from './FunctionNode';
+import { OperatorNode } from './OperatorNode';
+import { LiteralNode } from './LiteralNode';
+import { ParentheticalNode } from './ParentheticalNode';
 import { ReferenceNode } from './ReferenceNode';
 
 /**
@@ -89,5 +94,22 @@ export class ASTTraverser {
   static computeEvaluationStepMap(root: ASTNode): Map<string, number> {
     const order = ASTTraverser.computeEvaluationOrder(root);
     return new Map(order.map((id, i) => [id, i + 1]));
+  }
+
+
+  /**
+   * Reconstructs a proper ASTNode class instance from the plain-object shape
+   * produced when the AST crosses the Astro island boundary (props are
+   * serialized via `Object.entries`, which drops prototype methods/getters).
+   * Dispatches on structural shape and recursively revives children.
+   */
+  static deserializeAST(obj: ASTNodeObject): ASTNode {
+    const revive = (o: ASTNodeObject): ASTNode => ASTTraverser.deserializeAST(o);
+    if (obj.name !== undefined || obj.args !== undefined) return FunctionNode.fromObject(obj, revive);
+    if (obj.operator !== undefined) return OperatorNode.fromObject(obj, revive);
+    if (obj.reference !== undefined) return ReferenceNode.fromObject(obj);
+    if (obj.expression !== undefined) return ParentheticalNode.fromObject(obj, revive);
+    if (obj.valueType !== undefined || obj.value !== undefined) return LiteralNode.fromObject(obj);
+    throw new Error(`Cannot deserialize AST node ${obj.id}: unrecognized shape.`);
   }
 }

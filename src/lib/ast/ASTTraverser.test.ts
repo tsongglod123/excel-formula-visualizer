@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { ASTNode, FunctionNode, OperatorNode, ReferenceNode, LiteralNode } from './index';
+import { ASTNode, FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from './index';
+import type { ASTNodeObject } from './index';
 import { ASTTraverser } from './ASTTraverser';
 
 function buildSampleTree(): ASTNode {
@@ -84,6 +85,50 @@ describe('ASTTraverser', () => {
       expect(map.get('n5')).toBe(5);
       expect(map.get('n6')).toBe(6);
       expect(map.get('n0')).toBe(7);
+    });
+  });
+
+
+  describe('deserializeAST', () => {
+    // Mimics what Astro's prop serializer does when the AST crosses the
+    // island boundary: class instances become plain objects (methods/
+    // getters are dropped).
+    function toPlain(node: unknown): ASTNodeObject {
+      return JSON.parse(JSON.stringify(node)) as ASTNodeObject;
+    }
+
+    it('revives a plain object back into class instances', () => {
+      const revived = ASTTraverser.deserializeAST(toPlain(root));
+      expect(revived).toBeInstanceOf(FunctionNode);
+      expect(revived.getChildren()[0]).toBeInstanceOf(OperatorNode);
+      expect(revived.getChildren()[1]).toBeInstanceOf(LiteralNode);
+    });
+
+    it('preserves the type discriminator and labels', () => {
+      const revived = ASTTraverser.deserializeAST(toPlain(root));
+      expect(revived.type).toBe('function');
+      expect(revived.getLabel()).toBe('IF');
+      const gt = revived.getChildren()[0];
+      expect(gt.type).toBe('operator');
+      expect(gt.getChildren()[0].getLabel()).toBe('SUM');
+    });
+
+    it('produces a tree equivalent to the original', () => {
+      const revived = ASTTraverser.deserializeAST(toPlain(root));
+      expect(ASTTraverser.computeEvaluationOrder(revived)).toEqual(ASTTraverser.computeEvaluationOrder(root));
+      expect(ASTTraverser.getSubtreeIds(revived)).toEqual(ASTTraverser.getSubtreeIds(root));
+    });
+
+    it('revives references, parentheticals, and unary operators', () => {
+      const tree = new OperatorNode('u', 'unary-', new ParentheticalNode('par', new OperatorNode('add', '+', new ReferenceNode('r', 'B2'), new LiteralNode('lit', 5, 'number'))));
+      const revived = ASTTraverser.deserializeAST(toPlain(tree));
+      const paren = revived.getChildren()[0];
+      expect(paren).toBeInstanceOf(ParentheticalNode);
+      expect(paren.getChildren()[0].getChildren()[0]).toBeInstanceOf(ReferenceNode);
+    });
+
+    it('throws on an unrecognized shape', () => {
+      expect(() => ASTTraverser.deserializeAST({ id: 'x' })).toThrow();
     });
   });
 });

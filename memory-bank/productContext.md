@@ -40,7 +40,7 @@ Formula String → [Parse Layer] → AST → [Visualize Layer] → Visual Blocks
 ## Brand & Design Direction
 
 - **Bold and distinctive** — Not generic AI aesthetics; committed to a unique visual identity
-- **Dark-first** — Dark mode by default with system preference detection, manual toggle available
+- **Light-only** — Single light theme by design. Dark mode is explicitly out of scope; the site opts out via `color-scheme: light`
 - **Highly typographic** — Bricolage Grotesque for body text (characterful sans-serif), Spline Sans Mono for formulas (clean monospace)
 - **Color as information** — Every node type has a dedicated color; color isn't decoration, it's data
 - **Spatial hierarchy** — Nested blocks reveal tree depth; generous whitespace prevents cognitive overload

@@ -1,4 +1,5 @@
 import { ASTNode } from './ASTNode';
+import type { ASTNodeObject } from './ASTNode';
 
 /**
  * Represents a binary or unary operator in the AST, e.g. `+`, `-`, `*`, `/`, `^`, `%`, `&`, comparison operators.
@@ -23,5 +24,12 @@ export class OperatorNode extends ASTNode {
 
   getLabel(): string {
     return this.operator;
+  }
+
+
+  /** Reconstructs an OperatorNode from its serialized plain-object shape. */
+  static fromObject(obj: ASTNodeObject, revive: (o: ASTNodeObject) => ASTNode): OperatorNode {
+    if (!obj.left) throw new Error(`Operator node ${obj.id} is missing its left operand.`);
+    return new OperatorNode(obj.id, obj.operator ?? '', revive(obj.left), obj.right ? revive(obj.right) : undefined);
   }
 }

@@ -23,3 +23,24 @@ export abstract class ASTNode {
     return this.getChildren().length === 0;
   }
 }
+
+/**
+ * Structural (plain-object) shape of an AST node as produced by Astro's prop
+ * serializer (which uses `Object.entries`) when the AST crosses the island
+ * boundary into a hydrated framework component. Methods and getters are lost
+ * in transit; `deserializeAST` (see `ASTTraverser`) revives them back into
+ * class instances via each node's `fromObject` factory.
+ */
+export interface ASTNodeObject {
+  id: string;
+  name?: string;
+  args?: ASTNodeObject[];
+  operator?: string;
+  left?: ASTNodeObject;
+  right?: ASTNodeObject;
+  reference?: string;
+  range?: { start: string; end: string };
+  value?: number | string | boolean;
+  valueType?: 'number' | 'string' | 'boolean';
+  expression?: ASTNodeObject;
+}

@@ -22,6 +22,10 @@
   }
 
   html {
+    /* Light-only site: dark mode is intentionally not supported. Opting out of
+       the dark color scheme prevents browsers from force-darkening the page
+       and keeps native controls (scrollbars, form fields) in light styling. */
+    color-scheme: light;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     scroll-behavior: smooth;

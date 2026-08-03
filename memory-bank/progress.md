@@ -49,7 +49,6 @@
 - 404 page
 - Responsive navbar with mobile menu
 - Footer with links
-- Dark mode with theme toggle and system preference detection
 - Copy URL / share button
 - Skip-to-content link for accessibility
 - View transitions via `<ClientRouter />`
@@ -58,7 +57,7 @@
 - Astro 7 + React 19 + Tailwind CSS 4
 - Netlify adapter with on-demand rendering for `/visualize`
 - TypeScript strict mode
-- Vitest test setup (134 tests passing)
+- Vitest test setup (166 tests passing) with jsdom + Testing Library for component tests
 - Fonts: Bricolage Grotesque (body), Spline Sans Mono (code)
 
 ---
@@ -101,7 +100,7 @@
 - [ ] Deep linking to specific evaluation steps
 
 ### Testing & Quality
-- [ ] Component tests for React components (`FormulaOutline`, `EvaluatorBar`, `ExplanationPanel`)
+- [x] Component tests for React components (`VisualizerClient`, `FormulaOutline`, `EvaluatorBar`, `ExplanationPanel`, `useEvaluation`)
 - [ ] End-to-end tests with Playwright
 - [ ] Accessibility audit with axe-core
 - [ ] Performance testing for very large formulas
@@ -117,7 +116,7 @@
 
 ## Known Issues
 
-_No critical known issues at this time. The 134 tests are all passing._
+_No critical known issues at this time. All 166 tests are passing._
 
 ---
 
@@ -134,7 +133,7 @@ _No critical known issues at this time. The 134 tests are all passing._
 - Build React components: FormulaOutline, EvaluatorBar, ExplanationPanel
 - Add hover highlighting, step-by-step evaluation, reference map
 - Integrate official Microsoft argument names
-- Add dark mode, view transitions, share button
+- Add view transitions, share button
 - Server-render visualize page with on-demand rendering
 
 ### Phase 3: Polish & Enhancement (Current)
@@ -166,5 +165,10 @@ _No critical known issues at this time. The 134 tests are all passing._
 |---|---|---|
 | Parser (`parser.test.ts`) | 54 | Operator precedence, functions, nested, references, ranges, comparisons, concatenation, percent, unary minus, booleans, numbers, strings, errors, complex formulas |
 | Translator (`translate.test.ts`) | 67 | Arithmetic, references, ranges, comparisons, functions, logical, lookup, text, date, complex formulas, parentheticals, generic fallback |
-| ASTTraverser (`ASTTraverser.test.ts`) | 13 | findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap |
-| **Total** | **134** | **All passing** |
+| ASTTraverser (`ASTTraverser.test.ts`) | 18 | findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST round-trip |
+| VisualizerClient (`VisualizerClient.test.tsx`) | 4 | Plain-object AST island regression, class-instance AST, cross-panel hover sync, playback controls |
+| FormulaOutline (`FormulaOutline.test.tsx`) | 6 | Legend, step numbers, hover callbacks, reference selection, subtree dimming, current-step ring |
+| EvaluatorBar (`EvaluatorBar.test.tsx`) | 7 | Step display, playback callbacks, disabled states at bounds, formula rendering, current-node highlight |
+| ExplanationPanel (`ExplanationPanel.test.tsx`) | 4 | Full translation, nested breakdown, hover callbacks, highlighted node |
+| useEvaluation (`useEvaluation.test.ts`) | 6 | Initial state, step bounds, reset, node-id mapping, auto-advance with fake timers |
+| **Total** | **166** | **All passing** |

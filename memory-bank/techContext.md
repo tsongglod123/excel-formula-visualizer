@@ -22,7 +22,17 @@
 ### Testing
 | Package | Version | Purpose |
 |---|---|---|
-| **Vitest** | v4.1.10 | Unit testing framework (134 tests) |
+| **Vitest** | v4.1.10 | Unit + component testing framework (166 tests) |
+| **jsdom** | v30.0.1 | Browser environment for component tests (per-file `// @vitest-environment jsdom` pragma) |
+| **@testing-library/react** | v16.3.2 | React component rendering/queries in tests |
+| **@testing-library/dom** | v10.4.1 | Required peer of @testing-library/react |
+| **@testing-library/user-event** | v14.6.1 | Realistic user interactions in tests |
+| **@testing-library/jest-dom** | v7.0.0 | DOM matchers, registered in `src/test/setup.ts` |
+
+### CLI Tooling
+| Package | Version | Purpose |
+|---|---|---|
+| **netlify-cli** | v27.0.1 | `netlify serve` - local production preview (replaces unsupported `astro preview`) |
 
 ### Fonts
 | Font | Usage | Source |
@@ -57,8 +67,9 @@ astro dev stop           # Stop server
 ### Build & Preview
 ```bash
 npm run build           # Build to ./dist/
-npm run preview         # Preview production build
+npm run preview         # Preview production build locally via Netlify CLI
 ```
+**Note:** `astro preview` is not supported by `@astrojs/netlify` (the adapter provides no preview entrypoint, so Astro throws: `[preview] The @astrojs/netlify adapter does not support the preview command.`). `npm run preview` runs `netlify serve`, which emulates Netlify production at http://localhost:8888 - serving `dist/` plus the SSR function for `/visualize`. Run `npm run build` first; changes are not hot-reloaded.
 
 ---
 
@@ -107,7 +118,7 @@ Both require postinstall scripts (`allowScripts` in package.json):
 - **CI/CD:** Automatic deployment from GitHub repository
 
 ### Netlify Configuration
-- `netlify.toml` for build settings, redirects, and environment variables (optional)
+- `netlify.toml` at project root: `command = "npm run build"`, `publish = "dist"` - also required for `netlify serve` to detect the publish directory
 - Node.js version set via `.nvmrc` or `NODE_VERSION` environment variable
 
 ---
@@ -128,7 +139,7 @@ Both require postinstall scripts (`allowScripts` in package.json):
 ### Browser Support
 - Modern browsers (Chrome, Firefox, Safari, Edge)
 - No IE11 support (uses modern CSS features, ES modules)
-- Dark mode via `prefers-color-scheme` media query
+- Light-only theme locked via `color-scheme: light` (dark mode explicitly out of scope)
 
 ### Accessibility Requirements
 - WCAG AA contrast ratio (4.5:1 for normal text, 3:1 for large text)

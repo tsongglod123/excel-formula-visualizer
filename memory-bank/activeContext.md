@@ -6,6 +6,18 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
+### Completed: React Component Tests
+
+- **Testing infrastructure** — Installed jsdom v30.0.1, @testing-library/react v16.3.2 (+ dom peer v10.4.1, user-event v14.6.1, jest-dom v7.0.0). `vitest.config.mts` keeps `environment: 'node'` default + `setupFiles: ['./src/test/setup.ts']`; component tests opt into jsdom via `// @vitest-environment jsdom` docblock pragma (Vitest 4 removed environmentMatchGlobs). setup.ts registers jest-dom matchers AND manual `cleanup()` (required because `globals: false` disables RTL auto-cleanup).
+- **27 new tests (166 total)** — VisualizerClient (plain-object AST island regression test), FormulaOutline, EvaluatorBar, ExplanationPanel, useEvaluation hook (fake timers for auto-play).
+- Component tests deliberately pass `JSON.parse(JSON.stringify(ast))` plain objects to mirror the post-serialization shape components receive in production; lib tests keep using class instances.
+
+### Completed: Bug Fixes (Preview + View Transitions)
+
+- **astro preview unsupported** — `npm run preview` now runs `netlify serve` (netlify-cli v27.0.1 added as devDependency; `netlify.toml` created with `command = "npm run build"`, `publish = "dist"`). Root cause: `@astrojs/netlify` ships no preview entrypoint, so Astro core throws. Validated `/` (static) and `/visualize` (SSR function) both return 200 via the local Netlify server.
+- **Blank visualizer after submitting a formula (AST island serialization)** — The OOP AST uses class instances whose `type`/`getChildren()`/`getLabel()` live on the prototype. When `visualize.astro` passed the AST to `<VisualizerClient client:load>`, Astro serialized it via `Object.entries` into a plain object, so on hydration the client AST had data but no methods — `useEvaluation` threw `getChildren is not a function` and the island went blank. Fix: added `ASTNodeObject` shape type, a `fromObject` factory per node, `ASTTraverser.deserializeAST`, and a memoized revival in `VisualizerClient`. 5 new round-trip tests.
+- **Mobile hamburger menu broken after navigation** — Replaced `is:inline` one-shot scripts with bundled module scripts wired via `astro:page-load` in `Navbar.astro`, `CopyUrlButton.astro`, and `FormulaEditor.astro`. Root cause: ClientRouter deduplicates inline scripts by textContent, so identical scripts never re-ran after client-side swaps, leaving fresh DOM with no listeners.
+
 ### Completed: OOP Refactoring
 
 - **AST class hierarchy** — Replaced plain interfaces with polymorphic classes (`ASTNode` abstract base + 5 concrete node classes) in `src/lib/ast/`
@@ -37,12 +49,12 @@ The project is in an **active development** phase. All three core layers (Parse,
 3. Add tooltips with reference details (range info, value if available)
 4. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
 5. Add formula history / recent formulas feature
-6. Begin planning component tests for React components
+6. Add end-to-end tests with Playwright (real browser, island hydration)
 
 ## Active Decisions & Considerations
 
 - **Collapsible groups approach**: Should use React state (`useState` for expanded/collapsed tracking) with smooth CSS transitions. Consider whether to persist collapse state across re-renders.
-- **Reference connection lines**: Needs careful implementation — SVG overlay or canvas-based approach. Must work with responsive layout and dark mode.
+- **Reference connection lines**: Needs careful implementation — SVG overlay or canvas-based approach. Must work with responsive layout (site is light-only; no dark mode).
 - **Tooltip positioning**: Use floating UI or Popper.js for smart positioning that avoids viewport edge clipping.
 - **Keyboard shortcuts**: Need to scope shortcuts to the evaluator component only (not global) to avoid conflicts with browser defaults.
 
@@ -63,3 +75,4 @@ The project is in an **active development** phase. All three core layers (Parse,
 - Tailwind CSS v4's `@theme` directive in `global.css` eliminates the need for a `tailwind.config.js` file
 - The `@astrojs/netlify` adapter enables on-demand rendering for specific routes while keeping the rest of the site static
 - Vitest 4 works seamlessly with Astro because both use Vite under the hood
+- With `<ClientRouter />`, `is:inline` scripts run only once per unique script content — after client-side navigation, swapped-in DOM has no listeners. Always wire interactivity via `astro:page-load` in a bundled module script; attach document-level listeners once with lazy DOM lookup

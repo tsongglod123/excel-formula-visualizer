@@ -213,6 +213,24 @@ src/pages/
 5. Server renders the page with serialized AST and translation passed as props to `VisualizerClient`
 6. Client hydrates React components for interactivity
 
+### Client-Side Scripts with ClientRouter (View Transitions)
+
+`Layout.astro` uses `<ClientRouter />`, so navigation is client-side DOM swapping. Rules for component `<script>` blocks:
+
+- **Never use `<script is:inline>` for event-listener wiring.** The router deduplicates inline scripts by `textContent` (`scriptsAlreadyRan` in `transitions/swap-functions.js`): all scripts are registered at initial load, and identical inline scripts on swapped-in pages are marked `data-astro-exec` and skipped by `runScripts()` — the fresh DOM ends up with no listeners (this broke the mobile hamburger menu after any navigation).
+- **Pattern:** use a bundled module `<script>` that wires listeners inside `document.addEventListener('astro:page-load', ...)`. The event fires on the initial load (module scripts register before window `load`) and after every swap.
+- **Document-level listeners** (e.g., Escape key): attach once at module scope and look up elements lazily at event time, so they always operate on the current DOM and are never duplicated.
+- Applied in: `Navbar.astro` (mobile menu), `CopyUrlButton.astro`, `FormulaEditor.astro`.
+
+### Serialization Boundary: Class Instances Across Astro Islands
+
+Props passed to a hydrated framework component (`client:*`) are serialized by Astro via `Object.entries` (`runtime/server/serialize.js`). **Class instances lose their prototype** — methods and getters are stripped; only own enumerable data properties survive as a plain object.
+
+- The OOP AST relies on `node.type` (getter), `getChildren()`, `getLabel()`, and `instanceof` checks, all of which break on the client if the AST is passed as-is (this blanked the visualizer).
+- **Pattern:** revive instances at the island entry point. Each node class has a `static fromObject(obj, revive)` factory; `ASTTraverser.deserializeAST(plain)` dispatches on structural shape and recursively revives children; `VisualizerClient` wraps the incoming prop with `useMemo(() => raw instanceof ASTNode ? raw : ASTTraverser.deserializeAST(raw), [raw])`.
+- `ASTNodeObject` (in `ASTNode.ts`) describes the serialized plain-object shape.
+- Only the AST prop needs this; `translation`/`nodeTranslations` are already plain data.
+
 ---
 
 ## 5. Component Organization
@@ -243,8 +261,7 @@ src/components/
 - **No** `tailwind.config.js` — all configuration via `@import "tailwindcss"` in `global.css`
 - Custom theme tokens defined using `@theme` directive in `global.css`
 - Font family registration via `@theme`: Bricolage Grotesque (body), Spline Sans Mono (code)
-- Dark mode implemented via CSS custom properties and `prefers-color-scheme` media query
-- Theme toggle uses `data-theme` attribute on `<html>` element
+- **Light-only theme** — dark mode is intentionally not supported. No `dark:` variants, no theme toggle, no `prefers-color-scheme` logic. The site locks light rendering via `color-scheme: light` in `global.css` and a `<meta name="color-scheme" content="light">` tag in `Layout.astro` (prevents browser force-darkening)
 
 ### Component Styling
 - Astro components use `<style>` blocks for component-scoped styles
@@ -267,3 +284,12 @@ src/components/
 - **Vitest 4** — zero-config with Astro/Vite
 - TypeScript support out of the box
 - Tests are co-located with source files (`parser.test.ts` next to `parser.ts`)
+
+### Component Tests (jsdom + Testing Library)
+- **Location:** `src/components/react/*.test.tsx`, `src/components/react/hooks/*.test.ts`
+- Component test files start with the `// @vitest-environment jsdom` docblock pragma; everything else runs on the fast `node` default
+- `src/test/setup.ts` registers `@testing-library/jest-dom/vitest` matchers and calls `cleanup()` in `afterEach` (required: `globals: false` disables RTL auto-cleanup)
+- **Island-shape pattern:** component tests pass `JSON.parse(JSON.stringify(ast))` plain objects for the `ast` prop to mirror what Astro's serializer delivers in production (see Serialization Boundary pattern above); lib tests use class instances directly
+- Query style: `getByRole` with accessible names (aria-labels on outline nodes, e.g. `reference: B2, step 1`); regex-anchored names for explanation buttons (`/^\u2192\s?cell B2$/`) since parent buttons' names contain child text
+- Fake timers (`vi.useFakeTimers`) for `useEvaluation` auto-play; call before `renderHook`
+- Run with `npm run test` (watch) or `npx vitest run` (single run)
