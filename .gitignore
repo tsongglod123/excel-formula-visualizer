@@ -41,7 +41,6 @@ $RECYCLE.BIN/
 .vscode/
 *.sublime-project
 *.sublime-workspace
-TODO.md
 
 # TypeScript
 *.tsbuildinfo
