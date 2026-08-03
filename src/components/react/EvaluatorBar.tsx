@@ -1,7 +1,9 @@
 'use client';
 
-import type { ASTNode, FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../lib/parser';
-import type { NodeTranslation } from '../lib/translate';
+import type { ASTNode } from '../../lib/ast';
+import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../../lib/ast';
+import { ASTTraverser } from '../../lib/ast';
+import type { NodeTranslation } from '../../lib/translate';
 
 interface EvaluatorBarProps {
   ast: ASTNode;
@@ -14,42 +16,6 @@ interface EvaluatorBarProps {
   onStepForward: () => void;
   onStepBackward: () => void;
   onReset: () => void;
-}
-
-function getChildren(node: ASTNode): ASTNode[] {
-  switch (node.type) {
-    case 'function':
-      return (node as FunctionNode).args;
-    case 'operator': {
-      const op = node as OperatorNode;
-      return op.right ? [op.left, op.right] : [op.left];
-    }
-    case 'parenthetical':
-      return [(node as ParentheticalNode).expression];
-    default:
-      return [];
-  }
-}
-
-function getNodeLabel(node: ASTNode): string {
-  switch (node.type) {
-    case 'function':
-      return (node as FunctionNode).name;
-    case 'operator':
-      return (node as OperatorNode).operator;
-    case 'reference':
-      return (node as ReferenceNode).reference;
-    case 'literal': {
-      const lit = node as LiteralNode;
-      if (lit.valueType === 'string') return `"${lit.value}"`;
-      if (lit.valueType === 'boolean') return lit.value ? 'TRUE' : 'FALSE';
-      return String(lit.value);
-    }
-    case 'parenthetical':
-      return 'group';
-    default:
-      return node.type;
-  }
 }
 
 function operatorSymbol(op: string): string {
@@ -65,67 +31,63 @@ function FormulaSpan({ node, currentId }: { node: ASTNode; currentId: string | n
   const wrap = (children: React.ReactNode) =>
     isCurrent ? <span className={highlightClass}>{children}</span> : <>{children}</>;
 
-  switch (node.type) {
-    case 'function': {
-      const fn = node as FunctionNode;
-      return wrap(
-        <>
-          <span className="font-bold">{fn.name}</span>
-          <span className="text-ink-muted">(</span>
-          {fn.args.map((arg, i) => (
-            <span key={arg.id}>
-              <FormulaSpan node={arg} currentId={currentId} />
-              {i < fn.args.length - 1 && <span className="text-ink-muted">, </span>}
-            </span>
-          ))}
-          <span className="text-ink-muted">)</span>
-        </>
-      );
-    }
-    case 'operator': {
-      const op = node as OperatorNode;
-      const symbol = operatorSymbol(op.operator);
-      if (!op.right) {
-        if (op.operator === '%') {
-          return wrap(
-            <>
-              <FormulaSpan node={op.left} currentId={currentId} />
-              <span className="text-ink-muted">{symbol}</span>
-            </>
-          );
-        }
+  if (node instanceof FunctionNode) {
+    const fn = node;
+    return wrap(
+      <>
+        <span className="font-bold">{fn.name}</span>
+        <span className="text-ink-muted">(</span>
+        {fn.args.map((arg, i) => (
+          <span key={arg.id}>
+            <FormulaSpan node={arg} currentId={currentId} />
+            {i < fn.args.length - 1 && <span className="text-ink-muted">, </span>}
+          </span>
+        ))}
+        <span className="text-ink-muted">)</span>
+      </>
+    );
+  }
+
+  if (node instanceof OperatorNode) {
+    const op = node;
+    const symbol = operatorSymbol(op.operator);
+    if (!op.right) {
+      if (op.operator === '%') {
         return wrap(
           <>
-            <span className="text-ink-muted">{symbol}</span>
             <FormulaSpan node={op.left} currentId={currentId} />
+            <span className="text-ink-muted">{symbol}</span>
           </>
         );
       }
       return wrap(
         <>
+          <span className="text-ink-muted">{symbol}</span>
           <FormulaSpan node={op.left} currentId={currentId} />
-          <span className="mx-1 text-ink-muted">{symbol}</span>
-          <FormulaSpan node={op.right} currentId={currentId} />
         </>
       );
     }
-    case 'parenthetical': {
-      const paren = node as ParentheticalNode;
-      return wrap(
-        <>
-          <span className="text-ink-muted">(</span>
-          <FormulaSpan node={paren.expression} currentId={currentId} />
-          <span className="text-ink-muted">)</span>
-        </>
-      );
-    }
-    case 'reference':
-      return wrap(<span className="font-mono">{getNodeLabel(node)}</span>);
-    case 'literal':
-      return wrap(<span className="font-mono">{getNodeLabel(node)}</span>);
-    default:
-      return wrap(<span>{getNodeLabel(node)}</span>);
+    return wrap(
+      <>
+        <FormulaSpan node={op.left} currentId={currentId} />
+        <span className="mx-1 text-ink-muted">{symbol}</span>
+        <FormulaSpan node={op.right} currentId={currentId} />
+      </>
+    );
   }
+
+  if (node instanceof ParentheticalNode) {
+    const paren = node;
+    return wrap(
+      <>
+        <span className="text-ink-muted">(</span>
+        <FormulaSpan node={paren.expression} currentId={currentId} />
+        <span className="text-ink-muted">)</span>
+      </>
+    );
+  }
+
+  return wrap(<span className="font-mono">{node.getLabel()}</span>);
 }
 
 function buildTranslationMap(root: NodeTranslation): Map<string, string> {
@@ -139,20 +101,22 @@ function buildTranslationMap(root: NodeTranslation): Map<string, string> {
 }
 
 function getStepAction(node: ASTNode): string {
-  switch (node.type) {
-    case 'function':
-      return `Evaluate the ${(node as FunctionNode).name} function`;
-    case 'operator':
-      return 'Evaluate the operator';
-    case 'reference':
-      return `Look up the value of ${(node as ReferenceNode).reference}`;
-    case 'literal':
-      return `Use the value ${getNodeLabel(node)}`;
-    case 'parenthetical':
-      return 'Evaluate the grouped expression';
-    default:
-      return 'Evaluate';
+  if (node instanceof FunctionNode) {
+    return `Evaluate the ${node.name} function`;
   }
+  if (node instanceof OperatorNode) {
+    return 'Evaluate the operator';
+  }
+  if (node instanceof ReferenceNode) {
+    return `Look up the value of ${node.reference}`;
+  }
+  if (node instanceof LiteralNode) {
+    return `Use the value ${node.getLabel()}`;
+  }
+  if (node instanceof ParentheticalNode) {
+    return 'Evaluate the grouped expression';
+  }
+  return 'Evaluate';
 }
 
 export default function EvaluatorBar({
@@ -169,7 +133,9 @@ export default function EvaluatorBar({
 }: EvaluatorBarProps) {
   const translationMap = buildTranslationMap(nodeTranslations);
   const currentNode = currentStepNodeId;
-  const description = currentNode ? translationMap.get(currentNode) ?? getStepAction(findNode(ast, currentNode)!) : null;
+  const description = currentNode
+    ? translationMap.get(currentNode) ?? getStepAction(ASTTraverser.findNode(ast, currentNode)!)
+    : null;
 
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface-elevated p-4">
@@ -250,13 +216,4 @@ export default function EvaluatorBar({
       )}
     </div>
   );
-}
-
-function findNode(root: ASTNode, id: string): ASTNode | null {
-  if (root.id === id) return root;
-  for (const child of getChildren(root)) {
-    const found = findNode(child, id);
-    if (found) return found;
-  }
-  return null;
 }

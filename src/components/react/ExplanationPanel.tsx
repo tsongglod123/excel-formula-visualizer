@@ -1,6 +1,6 @@
 'use client';
 
-import type { NodeTranslation } from '../lib/translate';
+import type { NodeTranslation } from '../../lib/translate';
 
 interface ExplanationPanelProps {
   translation: string;

@@ -1,15 +1,10 @@
 'use client';
 
 import { useMemo } from 'react';
-import type {
-  ASTNode,
-  FunctionNode,
-  OperatorNode,
-  ReferenceNode,
-  LiteralNode,
-  ParentheticalNode,
-} from '../lib/parser';
-import { getArgName } from '../lib/functionArgs';
+import type { ASTNode } from '../../lib/ast';
+import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../../lib/ast';
+import { ASTTraverser } from '../../lib/ast';
+import { getArgName } from '../../lib/functionArgs';
 
 interface FormulaOutlineProps {
   ast: ASTNode;
@@ -29,7 +24,7 @@ interface StyleSet {
   ring: string;
 }
 
-const STYLES: Record<ASTNode['type'], StyleSet> = {
+const STYLES: Record<string, StyleSet> = {
   function: {
     border: 'border-l-sky-400',
     bg: 'bg-sky-50/50',
@@ -67,125 +62,23 @@ const STYLES: Record<ASTNode['type'], StyleSet> = {
   },
 };
 
-function getNodeLabel(node: ASTNode): string {
-  switch (node.type) {
-    case 'function':
-      return (node as FunctionNode).name;
-    case 'operator':
-      return (node as OperatorNode).operator;
-    case 'reference':
-      return (node as ReferenceNode).reference;
-    case 'literal': {
-      const lit = node as LiteralNode;
-      if (lit.valueType === 'string') return `"${lit.value}"`;
-      if (lit.valueType === 'boolean') return lit.value ? 'TRUE' : 'FALSE';
-      return String(lit.value);
-    }
-    case 'parenthetical':
-      return 'group';
-    default:
-      return node.type;
-  }
-}
-
-function getChildren(node: ASTNode): ASTNode[] {
-  switch (node.type) {
-    case 'function':
-      return (node as FunctionNode).args;
-    case 'operator': {
-      const op = node as OperatorNode;
-      return op.right ? [op.left, op.right] : [op.left];
-    }
-    case 'parenthetical':
-      return [(node as ParentheticalNode).expression];
-    default:
-      return [];
-  }
-}
-
-function isLeaf(node: ASTNode): boolean {
-  return getChildren(node).length === 0;
-}
-
-function findNode(root: ASTNode, id: string): ASTNode | null {
-  if (root.id === id) return root;
-  for (const child of getChildren(root)) {
-    const found = findNode(child, id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function getSubtreeIds(node: ASTNode): Set<string> {
-  const ids = new Set<string>();
-  function walk(n: ASTNode) {
-    ids.add(n.id);
-    getChildren(n).forEach(walk);
-  }
-  walk(node);
-  return ids;
-}
-
-function getParentMap(root: ASTNode): Map<string, string> {
-  const map = new Map<string, string>();
-  function walk(n: ASTNode, parentId?: string) {
-    if (parentId) map.set(n.id, parentId);
-    getChildren(n).forEach((child) => walk(child, n.id));
-  }
-  walk(root);
-  return map;
-}
-
-function getAncestors(root: ASTNode, nodeId: string): Set<string> {
-  const parentMap = getParentMap(root);
-  const ancestors = new Set<string>();
-  let current = nodeId;
-  while (parentMap.has(current)) {
-    current = parentMap.get(current)!;
-    ancestors.add(current);
-  }
-  return ancestors;
-}
-
-function subtreeHasReference(node: ASTNode, ref: string): boolean {
-  if (node.type === 'reference') {
-    return (node as ReferenceNode).reference === ref;
-  }
-  return getChildren(node).some((child) => subtreeHasReference(child, ref));
-}
-
 function operatorWord(op: string): string {
   switch (op) {
-    case '+':
-      return 'plus';
-    case '-':
-      return 'minus';
-    case '*':
-      return 'multiplied by';
-    case '/':
-      return 'divided by';
-    case '^':
-      return 'raised to';
-    case '&':
-      return 'and';
-    case '=':
-      return 'equals';
-    case '<>':
-      return 'does not equal';
-    case '>':
-      return 'is greater than';
-    case '<':
-      return 'is less than';
-    case '>=':
-      return 'is at least';
-    case '<=':
-      return 'is at most';
-    case '%':
-      return 'percent';
-    case 'unary-':
-      return 'negative';
-    default:
-      return op;
+    case '+': return 'plus';
+    case '-': return 'minus';
+    case '*': return 'multiplied by';
+    case '/': return 'divided by';
+    case '^': return 'raised to';
+    case '&': return 'and';
+    case '=': return 'equals';
+    case '<>': return 'does not equal';
+    case '>': return 'is greater than';
+    case '<': return 'is less than';
+    case '>=': return 'is at least';
+    case '<=': return 'is at most';
+    case '%': return 'percent';
+    case 'unary-': return 'negative';
+    default: return op;
   }
 }
 
@@ -218,10 +111,8 @@ function OutlineNode({
   const isCompleted = currentStep !== null && stepNumber !== undefined && stepNumber < currentStep;
   const isHovered = highlightedNodeId === node.id;
   const isDimmed = dimmedIds.has(node.id);
-  const isSelectedRef =
-    selectedReference !== null && node.type === 'reference' && (node as ReferenceNode).reference === selectedReference;
-  const containsSelectedRef =
-    selectedReference !== null && node.type !== 'reference' && subtreeHasReference(node, selectedReference);
+  const isSelectedRef = selectedReference !== null && node instanceof ReferenceNode && node.reference === selectedReference;
+  const containsSelectedRef = selectedReference !== null && !(node instanceof ReferenceNode) && ASTTraverser.subtreeHasReference(node, selectedReference);
 
   const baseCard = `
     relative rounded-r-lg border border-border border-l-4 ${style.border} ${style.bg}
@@ -233,13 +124,12 @@ function OutlineNode({
   `;
 
   const handleClick = () => {
-    if (node.type === 'reference') {
-      const ref = (node as ReferenceNode).reference;
-      onClickRef(ref);
+    if (node instanceof ReferenceNode) {
+      onClickRef(node.reference);
     }
   };
 
-  if (node.type === 'literal' || node.type === 'reference') {
+  if (node instanceof LiteralNode || node instanceof ReferenceNode) {
     return (
       <button
         type="button"
@@ -247,7 +137,7 @@ function OutlineNode({
         onMouseLeave={() => onHover(null)}
         onClick={handleClick}
         className={`${baseCard} inline-flex items-center gap-2 px-3 py-2 text-left`}
-        aria-label={`${node.type}: ${getNodeLabel(node)}${stepNumber !== undefined ? `, step ${stepNumber}` : ''}`}
+        aria-label={`${node.type}: ${node.getLabel()}${stepNumber !== undefined ? `, step ${stepNumber}` : ''}`}
       >
         {stepNumber !== undefined && (
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface text-[10px] font-medium text-ink-muted ring-1 ring-border">
@@ -255,17 +145,17 @@ function OutlineNode({
           </span>
         )}
         <span className={`h-2 w-2 rounded-full ${style.dot}`} aria-hidden="true"></span>
-        <span className={`font-mono text-sm font-medium ${style.text}`}>{getNodeLabel(node)}</span>
+        <span className={`font-mono text-sm font-medium ${style.text}`}>{node.getLabel()}</span>
       </button>
     );
   }
 
-  if (node.type === 'operator') {
-    const op = node as OperatorNode;
-    const children = getChildren(op);
+  if (node instanceof OperatorNode) {
+    const op = node;
+    const children = op.getChildren();
     const word = operatorWord(op.operator);
 
-    if (op.right && children.every(isLeaf)) {
+    if (op.right && children.every((c) => c.isLeaf())) {
       return (
         <div
           className={baseCard}
@@ -294,7 +184,7 @@ function OutlineNode({
             />
             <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">{word}</span>
             <OutlineNode
-              node={op.right}
+              node={op.right!}
               root={root}
               depth={depth + 1}
               evalOrder={evalOrder}
@@ -348,8 +238,8 @@ function OutlineNode({
     );
   }
 
-  if (node.type === 'function') {
-    const fn = node as FunctionNode;
+  if (node instanceof FunctionNode) {
+    const fn = node;
     return (
       <div
         className={baseCard}
@@ -442,15 +332,15 @@ export default function FormulaOutline({
 }: FormulaOutlineProps) {
   const dimmedIds = useMemo(() => {
     if (!highlightedNodeId) return new Set<string>();
-    const hoveredNode = findNode(ast, highlightedNodeId);
+    const hoveredNode = ASTTraverser.findNode(ast, highlightedNodeId);
     if (!hoveredNode) return new Set<string>();
 
-    const ancestors = getAncestors(ast, highlightedNodeId);
-    const subtree = getSubtreeIds(hoveredNode);
+    const ancestors = ASTTraverser.getAncestors(ast, highlightedNodeId);
+    const subtree = ASTTraverser.getSubtreeIds(hoveredNode);
     const allIds = new Set<string>();
     function collectIds(n: ASTNode) {
       allIds.add(n.id);
-      getChildren(n).forEach(collectIds);
+      n.getChildren().forEach(collectIds);
     }
     collectIds(ast);
 

@@ -6,14 +6,25 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
-- All parser functionality complete — recursive descent parser with full operator precedence, 54 tests
-- All translator functionality complete — 100+ Excel functions with plain-English translations, 67 tests
-- All three interactive React components implemented: `FormulaOutline`, `EvaluatorBar`, `ExplanationPanel`
-- `VisualizerClient` orchestrates all interactive components on the visualize page
-- Official Microsoft Excel argument names integrated via `functionArgs.ts`
-- Dark mode with theme toggle and system preference detection
-- View transitions via `<ClientRouter />` for smooth page navigation
-- Copy URL / share button for formula sharing
+### Completed: OOP Refactoring
+
+- **AST class hierarchy** — Replaced plain interfaces with polymorphic classes (`ASTNode` abstract base + 5 concrete node classes) in `src/lib/ast/`
+  - Each node encapsulates `getChildren()`, `getLabel()`, `isLeaf()` behavior
+  - Eliminated all `switch (node.type)` + cast patterns in consumers
+- **ASTTraverser** — New static utility class in `src/lib/ast/ASTTraverser.ts`
+  - `findNode()`, `getSubtreeIds()`, `getParentMap()`, `getAncestors()`, `subtreeHasReference()`, `computeEvaluationOrder()`, `computeEvaluationStepMap()`
+  - 13 new unit tests
+- **Parser split** — `src/lib/parser.ts` monolith (585 lines) split into:
+  - `Tokenizer.ts` — token types, patterns, tokenize()
+  - `Parser.ts` — recursive descent parser + public `parse()` API
+  - `FormulaError.ts` — error class
+- **Translator strategy registry** — `src/lib/translate.ts` monolith (740 lines) split into 11 category modules + registry:
+  - `logical`, `math`, `lookup`, `text`, `date`, `statistical`, `information`, `financial`, `engineering`, `database`, `array`
+  - `TranslationContext.ts` provides shared helpers
+- **Function args split** — `src/lib/functionArgs.ts` (280 lines) split into `index.ts` (public API) + `functionArgs.ts` (data)
+- **Component organization** — Split into `src/components/astro/` and `src/components/react/`
+- **`useEvaluation` hook** — Extracted play/pause/step/reset state logic from `VisualizerClient` into `src/components/react/hooks/useEvaluation.ts`
+- **Backward-compat re-exports** — `parser.ts`, `translate.ts`, `functionArgs.ts` at `src/lib/` root re-export from new directories
 
 ## In Progress
 

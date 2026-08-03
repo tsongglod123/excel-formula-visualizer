@@ -4,14 +4,17 @@
 
 ### Parse Layer ✅
 - Recursive descent parser with full operator precedence
-- AST node types: Function, Operator, Reference, Literal, Parenthetical
+- **OOP class hierarchy**: `Tokenizer`, `Parser`, `FormulaError` in `src/lib/parser/`
+- **AST class hierarchy**: `ASTNode` abstract base + 5 concrete node classes in `src/lib/ast/`
+  - Polymorphic methods: `getChildren()`, `getLabel()`, `isLeaf()`
+- **ASTTraverser**: Static utility class for tree traversal (findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap)
 - Cell references: relative (`A1`), absolute (`$A$1`), mixed (`A$1`, `$A1`)
 - Ranges: `A1:A10`, full columns (`B:B`), full rows (`1:1`), cross-sheet (`Sheet1!A1:Sheet2!B2`)
 - Sheet-qualified references (`Sheet1!C5`, `'My Sheet'!A1`)
 - Operators: arithmetic (`+`, `-`, `*`, `/`, `^`, `%`), comparison (`=`, `<>`, `>`, `<`, `>=`, `<=`), concatenation (`&`), unary minus
 - Literals: numbers (including scientific notation, decimals), strings (with `""` escaping), booleans
 - Error handling with position tracking (`FormulaError`)
-- 54 parser unit tests
+- 54 parser unit tests + 13 ASTTraverser unit tests
 
 ### Explain Layer ✅
 - Plain English translation for 100+ Excel functions
@@ -55,7 +58,7 @@
 - Astro 7 + React 19 + Tailwind CSS 4
 - Netlify adapter with on-demand rendering for `/visualize`
 - TypeScript strict mode
-- Vitest test setup (121 tests passing)
+- Vitest test setup (134 tests passing)
 - Fonts: Bricolage Grotesque (body), Spline Sans Mono (code)
 
 ---
@@ -114,7 +117,7 @@
 
 ## Known Issues
 
-_No critical known issues at this time. The 121 tests are all passing._
+_No critical known issues at this time. The 134 tests are all passing._
 
 ---
 
@@ -163,4 +166,5 @@ _No critical known issues at this time. The 121 tests are all passing._
 |---|---|---|
 | Parser (`parser.test.ts`) | 54 | Operator precedence, functions, nested, references, ranges, comparisons, concatenation, percent, unary minus, booleans, numbers, strings, errors, complex formulas |
 | Translator (`translate.test.ts`) | 67 | Arithmetic, references, ranges, comparisons, functions, logical, lookup, text, date, complex formulas, parentheticals, generic fallback |
-| **Total** | **121** | **All passing** |
+| ASTTraverser (`ASTTraverser.test.ts`) | 13 | findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap |
+| **Total** | **134** | **All passing** |

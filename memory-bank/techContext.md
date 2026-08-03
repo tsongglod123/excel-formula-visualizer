@@ -22,7 +22,7 @@
 ### Testing
 | Package | Version | Purpose |
 |---|---|---|
-| **Vitest** | v4.1.10 | Unit testing framework (121 tests) |
+| **Vitest** | v4.1.10 | Unit testing framework (134 tests) |
 
 ### Fonts
 | Font | Usage | Source |
@@ -146,20 +146,17 @@ Both require postinstall scripts (`allowScripts` in package.json):
 ├── .gitignore
 ├── AGENTS.md
 ├── README.md
-├── TODO.md
 ├── astro.config.mjs
 ├── package.json
 ├── package-lock.json
 ├── tsconfig.json
 ├── vitest.config.mts
 ├── .clinerules/              # Project rules and conventions
-│   ├── architecture.md
 │   ├── coding-conventions.md
 │   ├── development.md
-│   ├── features.md
 │   ├── memory-bank.md
-│   ├── project-overview.md
-│   └── tech-stack.md
+│   ├── project-context.md
+│   └── workflows/
 ├── memory-bank/              # Cline's memory bank (this directory)
 │   ├── projectbrief.md
 │   ├── productContext.md
@@ -172,25 +169,60 @@ Both require postinstall scripts (`allowScripts` in package.json):
 │   └── favicon.svg
 └── src/
     ├── components/           # Reusable Astro + React components
-    │   ├── CopyUrlButton.astro
-    │   ├── EvaluatorBar.tsx
-    │   ├── ExplanationPanel.tsx
-    │   ├── FeatureCard.astro
-    │   ├── Footer.astro
-    │   ├── FormulaEditor.astro
-    │   ├── FormulaOutline.tsx
-    │   ├── Hero.astro
-    │   ├── Navbar.astro
-    │   ├── ThemeToggle.astro
-    │   └── VisualizerClient.tsx
+    │   ├── astro/            # Astro components (marketing pages)
+    │   │   ├── CopyUrlButton.astro
+    │   │   ├── FeatureCard.astro
+    │   │   ├── Footer.astro
+    │   │   ├── FormulaEditor.astro
+    │   │   ├── Hero.astro
+    │   │   └── Navbar.astro
+    │   └── react/            # React components (visualizer)
+    │       ├── VisualizerClient.tsx
+    │       ├── FormulaOutline.tsx
+    │       ├── EvaluatorBar.tsx
+    │       ├── ExplanationPanel.tsx
+    │       └── hooks/
+    │           └── useEvaluation.ts
     ├── layouts/              # Page layout components
     │   └── Layout.astro
     ├── lib/                  # Core logic (parser, translator, utilities)
-    │   ├── functionArgs.ts
-    │   ├── parser.ts
+    │   ├── ast/              # AST class hierarchy + traversal
+    │   │   ├── ASTNode.ts
+    │   │   ├── FunctionNode.ts
+    │   │   ├── OperatorNode.ts
+    │   │   ├── ReferenceNode.ts
+    │   │   ├── LiteralNode.ts
+    │   │   ├── ParentheticalNode.ts
+    │   │   ├── ASTTraverser.ts
+    │   │   ├── ASTTraverser.test.ts
+    │   │   └── index.ts
+    │   ├── parser/           # Parser (Tokenizer, Parser, FormulaError)
+    │   │   ├── Tokenizer.ts
+    │   │   ├── Parser.ts
+    │   │   ├── FormulaError.ts
+    │   │   └── index.ts
+    │   ├── translate/        # Translator strategy modules
+    │   │   ├── index.ts
+    │   │   ├── TranslationContext.ts
+    │   │   ├── logical.ts
+    │   │   ├── math.ts
+    │   │   ├── lookup.ts
+    │   │   ├── text.ts
+    │   │   ├── date.ts
+    │   │   ├── statistical.ts
+    │   │   ├── information.ts
+    │   │   ├── financial.ts
+    │   │   ├── engineering.ts
+    │   │   ├── database.ts
+    │   │   └── array.ts
+    │   ├── functionArgs/     # Official Excel argument names
+    │   │   ├── index.ts
+    │   │   └── functionArgs.ts
+    │   ├── parser.ts         # Backward-compat re-exports
     │   ├── parser.test.ts
-    │   ├── translate.ts
-    │   └── translate.test.ts
+    │   ├── translate.ts      # Backward-compat re-exports
+    │   ├── translate.test.ts
+    │   └── functionArgs.ts   # Backward-compat re-exports
     ├── pages/                # File-based routing
     │   ├── 404.astro
     │   ├── about.astro

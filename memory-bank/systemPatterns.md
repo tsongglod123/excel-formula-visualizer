@@ -14,11 +14,19 @@ Each layer is independent and can be tested, modified, or replaced without affec
 
 ## 1. Parse Layer Pattern — Recursive Descent Parser
 
-**Location:** `src/lib/parser.ts`
+**Location:** `src/lib/parser/`
 
 ### Pattern: Recursive Descent with Precedence Climbing
 
 The parser uses a tokenizer + recursive descent approach with precedence climbing for binary operators.
+
+### Class Structure (OOP)
+
+| Class | Responsibility |
+|---|---|
+| `Tokenizer` | Converts raw formula string into typed tokens |
+| `Parser` | Recursive descent parser with precedence climbing |
+| `FormulaError` | Error class with position tracking |
 
 ### Tokenizer
 - Converts the raw formula string into a stream of typed tokens (functions, operators, references, literals, parentheses, commas)
@@ -38,15 +46,36 @@ The parser uses a tokenizer + recursive descent approach with precedence climbin
   - **Unary** (`-`, `%`)
   - **Primary** — literals, references, functions, parentheticals
 
-### AST Node Types
+### AST Node Class Hierarchy (Polymorphism)
+
+**Location:** `src/lib/ast/`
+
 ```
-ASTNode (base, has id: string)
+ASTNode (abstract base, has id: string)
 ├── FunctionNode     { name, args: ASTNode[] }
 ├── OperatorNode     { operator, left, right? }
 ├── ReferenceNode    { reference, range? }
 ├── LiteralNode      { value, valueType }
 └── ParentheticalNode { expression }
 ```
+
+Each node class encapsulates its own behavior via polymorphic methods:
+- `getChildren(): ASTNode[]` — returns child nodes
+- `getLabel(): string` — returns human-readable label
+- `isLeaf(): boolean` — returns true if no children
+
+### ASTTraverser (Visitor Pattern)
+
+**Location:** `src/lib/ast/ASTTraverser.ts`
+
+Static utility class providing tree traversal operations:
+- `findNode(root, id)` — find node by id
+- `getSubtreeIds(node)` — all ids in subtree
+- `getParentMap(root)` — node id → parent id map
+- `getAncestors(root, nodeId)` — ancestor id set
+- `subtreeHasReference(node, ref)` — check for reference in subtree
+- `computeEvaluationOrder(root)` — post-order traversal
+- `computeEvaluationStepMap(root)` — node id → step number map
 
 ### Error Handling
 - `FormulaError` class extends `Error` with `position` property
@@ -57,7 +86,7 @@ ASTNode (base, has id: string)
 
 ## 2. Visualize Layer Pattern — React Component Tree
 
-**Location:** `src/components/VisualizerClient.tsx`, `FormulaOutline.tsx`, `EvaluatorBar.tsx`, `ExplanationPanel.tsx`
+**Location:** `src/components/react/`
 
 ### Pattern: Orchestrator + Specialized Panels
 
@@ -71,6 +100,18 @@ ASTNode (base, has id: string)
 | `FormulaOutline` | Renders color-coded nested blocks, hover highlighting, reference map |
 | `EvaluatorBar` | Step-by-step evaluation controls (play/pause/step/reset), formula display |
 | `ExplanationPanel` | Full plain-English translation, interactive breakdown tree |
+
+### Custom Hook: `useEvaluation`
+
+**Location:** `src/components/react/hooks/useEvaluation.ts`
+
+Encapsulates all step-by-step evaluation state:
+- `evalOrder` — Map of node id → step number
+- `totalSteps` — total number of evaluation steps
+- `currentStep` — current step number
+- `isPlaying` — play/pause state
+- `currentStepNodeId` — node id for current step
+- `stepForward()`, `stepBackward()`, `resetSteps()`, `togglePlay()`
 
 ### State Management Pattern
 - `useState` for local UI state (collapsed nodes, current step, hover state)
@@ -103,13 +144,29 @@ const translation = translate(ast);
 
 ---
 
-## 3. Explain Layer Pattern — Recursive Translator
+## 3. Explain Layer Pattern — Strategy Registry
 
-**Location:** `src/lib/translate.ts`
+**Location:** `src/lib/translate/`
 
-### Pattern: Bottom-Up Recursive Translation
+### Pattern: Strategy Pattern with Function Registry
 
-The translator recursively traverses the AST, translating child nodes first and embedding their results into parent translations.
+Instead of a monolithic switch statement, each function category is a module of translator strategies. The `index.ts` merges all registries and dispatches by function name.
+
+### Module Structure
+
+| Module | Functions |
+|---|---|
+| `logical.ts` | IF, IFERROR, IFNA, IFS, AND, OR, NOT, XOR, SWITCH |
+| `math.ts` | SUM, AVERAGE, COUNT, MAX, MIN, ROUND, ABS, SQRT, POWER, MOD, etc. |
+| `lookup.ts` | VLOOKUP, HLOOKUP, XLOOKUP, INDEX, MATCH, CHOOSE, OFFSET, INDIRECT |
+| `text.ts` | CONCATENATE, LEFT, RIGHT, MID, LEN, UPPER, LOWER, TRIM, SUBSTITUTE, etc. |
+| `date.ts` | TODAY, NOW, YEAR, MONTH, DAY, DATE, TIME, WEEKDAY, etc. |
+| `statistical.ts` | STDEV, VAR, MEDIAN, MODE, RANK, LARGE, SMALL, CORREL, etc. |
+| `information.ts` | ISERROR, ISNUMBER, ISTEXT, ISBLANK, ISLOGICAL, etc. |
+| `financial.ts` | PMT, FV, PV, RATE, NPV, IRR, SLN, DDB, etc. |
+| `engineering.ts` | DEC2BIN, DEC2HEX, BIN2DEC, HEX2DEC, BITAND, BITOR, BITXOR |
+| `database.ts` | DSUM, DAVERAGE, DCOUNT, DMAX, DMIN |
+| `array.ts` | TRANSPOSE, UNIQUE, SORT, SORTBY, FILTER, SEQUENCE, RANDARRAY |
 
 ### Translation Flow
 ```
@@ -118,23 +175,20 @@ translateNode(node):
     'literal'     → formatLiteral(node)
     'reference'   → formatReference(node)
     'operator'    → translateNode(node.left) + translateOperator(node.operator) + translateNode(node.right)
-    'function'    → translateFunction(node.name, node.args.map(translateNode))
+    'function'    → FUNCTION_REGISTRY[node.name](node, ctx) ?? genericFallback(node, ctx)
     'parenthetical' → translateNode(node.expression)
 ```
 
-### Function Translation Registry
-- A mapping of function names to translation templates
-- 100+ Excel functions supported with specific translations
-- Logical: IF, IFERROR, IFNA, IFS, AND, OR, NOT, XOR, SWITCH
-- Math: SUM, AVERAGE, COUNT, MAX, MIN, ROUND, ABS, SQRT, POWER, MOD, etc.
-- Lookup: VLOOKUP, HLOOKUP, XLOOKUP, INDEX, MATCH, CHOOSE, OFFSET, INDIRECT
-- Text: CONCATENATE, LEFT, RIGHT, MID, LEN, UPPER, LOWER, TRIM, SUBSTITUTE, etc.
-- Date/Time: TODAY, NOW, YEAR, MONTH, DAY, DATE, TIME, WEEKDAY, etc.
-- Statistical, Financial, Engineering, Database, Array functions
-- Generic fallback: `"{functionName}({args})"` for unrecognized functions
+### TranslationContext
+**Location:** `src/lib/translate/TranslationContext.ts`
+
+Shared context class providing:
+- `translate(node)` — recursive translation
+- `joinArgs(args)` — join translated args with commas and "and"
+- `capitalize(s)` — capitalize first letter
 
 ### Official Argument Names
-**Location:** `src/lib/functionArgs.ts`
+**Location:** `src/lib/functionArgs/`
 
 Maps each Excel function to its official Microsoft argument names. Displayed alongside translations to help users understand what each argument represents (e.g., `VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`).
 
@@ -161,7 +215,29 @@ src/pages/
 
 ---
 
-## 5. Styling Patterns
+## 5. Component Organization
+
+```
+src/components/
+├── astro/                    # Astro components (marketing pages)
+│   ├── CopyUrlButton.astro
+│   ├── FeatureCard.astro
+│   ├── Footer.astro
+│   ├── FormulaEditor.astro
+│   ├── Hero.astro
+│   └── Navbar.astro
+└── react/                    # React components (visualizer)
+    ├── VisualizerClient.tsx
+    ├── FormulaOutline.tsx
+    ├── EvaluatorBar.tsx
+    ├── ExplanationPanel.tsx
+    └── hooks/
+        └── useEvaluation.ts
+```
+
+---
+
+## 6. Styling Patterns
 
 ### Tailwind CSS v4 (CSS-Based Configuration)
 - **No** `tailwind.config.js` — all configuration via `@import "tailwindcss"` in `global.css`
@@ -177,13 +253,14 @@ src/pages/
 
 ---
 
-## 6. Testing Patterns
+## 7. Testing Patterns
 
-**Location:** `src/lib/parser.test.ts`, `src/lib/translate.test.ts`
+**Location:** `src/lib/parser.test.ts`, `src/lib/translate.test.ts`, `src/lib/ast/ASTTraverser.test.ts`
 
 ### Unit Tests
 - **Parser**: 54 tests covering operator precedence, functions, nested functions, cell references, ranges, comparison operators, text concatenation, percent, unary minus, booleans, numbers, strings, error cases, and complex formulas
 - **Translator**: 67 tests covering arithmetic, references, ranges, comparisons, functions, logical functions, lookup functions, text functions, date functions, complex formulas, parentheticals, and generic fallback
+- **ASTTraverser**: 13 tests covering findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap
 - Run with `npm run test` (watch mode) or `npm run test:coverage` (single run with coverage)
 
 ### Testing Framework

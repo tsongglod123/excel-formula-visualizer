@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import FormulaEditor from '../components/FormulaEditor.astro';
-import CopyUrlButton from '../components/CopyUrlButton.astro';
-import VisualizerClient from '../components/VisualizerClient';
+import FormulaEditor from '../components/astro/FormulaEditor.astro';
+import CopyUrlButton from '../components/astro/CopyUrlButton.astro';
+import VisualizerClient from '../components/react/VisualizerClient';
 import { parse, FormulaError, type ASTNode } from '../lib/parser';
 import { translate, translateNode, type NodeTranslation } from '../lib/translate';
 

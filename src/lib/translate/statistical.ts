@@ -1,0 +1,27 @@
+import type { FunctionTranslator } from './logical';
+
+export const statisticalTranslators: Record<string, FunctionTranslator> = {
+  STDEV: (node, ctx) => `the sample standard deviation of ${ctx.joinArgs(node.args)}`,
+  'STDEV.S': (node, ctx) => `the sample standard deviation of ${ctx.joinArgs(node.args)}`,
+  STDEVP: (node, ctx) => `the population standard deviation of ${ctx.joinArgs(node.args)}`,
+  'STDEV.P': (node, ctx) => `the population standard deviation of ${ctx.joinArgs(node.args)}`,
+  VAR: (node, ctx) => `the sample variance of ${ctx.joinArgs(node.args)}`,
+  'VAR.S': (node, ctx) => `the sample variance of ${ctx.joinArgs(node.args)}`,
+  VARP: (node, ctx) => `the population variance of ${ctx.joinArgs(node.args)}`,
+  'VAR.P': (node, ctx) => `the population variance of ${ctx.joinArgs(node.args)}`,
+  MEDIAN: (node, ctx) => `the median of ${ctx.joinArgs(node.args)}`,
+  MODE: (node, ctx) => `the most frequently occurring value in ${ctx.joinArgs(node.args)}`,
+  'MODE.SNGL': (node, ctx) => `the most frequently occurring value in ${ctx.joinArgs(node.args)}`,
+  RANK: (node, ctx) => `the rank of ${ctx.translate(node.args[0])} within ${ctx.translate(node.args[1])}`,
+  LARGE: (node, ctx) => `the ${ctx.translate(node.args[1])}th largest value in ${ctx.translate(node.args[0])}`,
+  SMALL: (node, ctx) => `the ${ctx.translate(node.args[1])}th smallest value in ${ctx.translate(node.args[0])}`,
+  PERCENTILE: (node, ctx) => `the ${ctx.translate(node.args[1])}th percentile of ${ctx.translate(node.args[0])}`,
+  QUARTILE: (node, ctx) => `the quartile of ${ctx.translate(node.args[0])}`,
+  CORREL: (node, ctx) => `the correlation coefficient between ${ctx.translate(node.args[0])} and ${ctx.translate(node.args[1])}`,
+  COVAR: (node, ctx) => `the covariance between ${ctx.translate(node.args[0])} and ${ctx.translate(node.args[1])}`,
+  FORECAST: (node, ctx) => `the forecasted value for ${ctx.translate(node.args[0])} based on ${ctx.translate(node.args[1])} and ${ctx.translate(node.args[2])}`,
+  TREND: (node, ctx) => `the linear trend values based on ${ctx.joinArgs(node.args)}`,
+  GROWTH: (node, ctx) => `the exponential growth values based on ${ctx.joinArgs(node.args)}`,
+  'NORM.DIST': (node, ctx) => `the normal distribution for ${ctx.translate(node.args[0])} with mean ${ctx.translate(node.args[1])} and standard deviation ${ctx.translate(node.args[2])}`,
+  NORMDIST: (node, ctx) => `the normal distribution for ${ctx.translate(node.args[0])} with mean ${ctx.translate(node.args[1])} and standard deviation ${ctx.translate(node.args[2])}`,
+};
