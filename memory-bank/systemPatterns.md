@@ -97,9 +97,11 @@ Static utility class providing tree traversal operations:
 | Component | Responsibility |
 |---|---|
 | `VisualizerClient` | State management (hover, click, steps), AST distribution, URL sharing |
-| `FormulaOutline` | Renders color-coded nested blocks, hover highlighting, reference map |
+| `FormulaOutline` | File-explorer style tree (rows + connector guides), hover highlighting, reference map, zoom controls |
 | `EvaluatorBar` | Step-by-step evaluation controls (play/pause/step/reset), formula display |
-| `ExplanationPanel` | Full plain-English translation, interactive breakdown tree |
+| `ExplanationPanel` | Full plain-English translation with copy-to-clipboard |
+
+**Long-formula simplification (office-worker UX):** To keep dense LET / nested-IF formulas scannable, `FormulaOutline` collapses any subtree whose leaves are all literals/references into a single inline pill via `CompactSubtree` + `isAllLeafSubtree()` (e.g. `amt > avg * 1.5` renders as one pill, not three cards). Compact pills still support hover-highlight and reference-click (`role="button"` on references), and ring for the current evaluation step via a `currentStepNodeId` prop threaded from the root. The outline container scrolls horizontally (`overflow-x-auto`) and the EvaluatorBar formula display caps at `max-h-40 overflow-y-auto`.
 
 ### Custom Hook: `useEvaluation`
 
@@ -192,6 +194,11 @@ Shared context class providing:
 
 Maps each Excel function to its official Microsoft argument names. Displayed alongside translations to help users understand what each argument represents (e.g., `VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`).
 
+### Function Reference
+**Location:** `src/lib/functionDocs/` (data: `functionDocs.ts`, logic: `index.ts`)
+
+Short plain-English reference cards shown in the function-help popover on the tree. `getFunctionDoc(name)` returns `{ name, summary, returns, syntax, learnUrl }`. **Syntax is auto-generated** from `FUNCTION_ARG_NAMES`, **always starts with `=`** (like Excel), and **optional arguments render in square brackets** via `FUNCTION_OPTIONAL_ARGS` (`=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])`); variadic lists collapse to `=SUM(number1, [number2], [number3], …)` and `FUNCTION_VARIADIC` adds the ellipsis for short variadic functions (IFS/SUMIFS/CHOOSE). `FUNCTION_SYNTAX_ARGS` provides arg lists for everyday functions not in `FUNCTION_ARG_NAMES` (LET, IFS, SUMIFS, COUNTIFS, AVERAGEIFS, MINIFS, MAXIFS, CHOOSE). `learnUrl` is the official Microsoft support page: `https://support.microsoft.com/en-us/excel/functions/{func-name}-function` — lowercase, dots → hyphens (`STDEV.S` → `stdev-s-function`, verified against the live site). A test enforces the **full-coverage invariant**: every key of `FUNCTION_ARG_NAMES` must have a non-blank summary + returns (length-capped), so new functions can't ship without tooltip data.
+
 ---
 
 ## 4. Page Architecture (Astro File-Based Routing)
@@ -260,8 +267,18 @@ src/components/
 ### Tailwind CSS v4 (CSS-Based Configuration)
 - **No** `tailwind.config.js` — all configuration via `@import "tailwindcss"` in `global.css`
 - Custom theme tokens defined using `@theme` directive in `global.css`
-- Font family registration via `@theme`: Bricolage Grotesque (body), Spline Sans Mono (code)
+- Font family registration via `@theme`: Bricolage Grotesque (brand/body), Spline Sans Mono (code), and `--font-family-office` → `font-office` utility (system-ui/Segoe UI) used for the visualizer's functional UI so it feels like an Office app
 - **Light-only theme** — dark mode is intentionally not supported. No `dark:` variants, no theme toggle, no `prefers-color-scheme` logic. The site locks light rendering via `color-scheme: light` in `global.css` and a `<meta name="color-scheme" content="light">` tag in `Layout.astro` (prevents browser force-darkening)
+
+### Excel Design Language (visualizer)
+The visualizer borrows Excel's UI vocabulary so office workers feel at home:
+- **Brand accent = Excel green** — `--color-accent: #107c41` (modern M365 green), `#0b5a30` hover, `#ebf7ee` subtle tint. All components reference the `accent` token, so the whole site (nav, links, buttons, focus rings, Play button) flips via the 3 tokens
+- **Formula bar** — `EvaluatorBar` renders the formula in an Excel-style bar: boxed italic `fx` glyph + white strip in the office font (no `font-mono`)
+- **Worksheet canvas** — `FormulaOutline` renders its color legend in a slim toolbar header ("Formula structure") above a plain white canvas (a gridline backdrop was tried and rejected — too visually noisy behind dense trees)
+- **Tree visual = file-explorer style** — one row per node (`role="tree"/"treeitem"/"group"`), children indented in `.tree-children` lists with connector guides in `var(--color-border)`: the `<li>` draws the vertical `::after` segment (`:last-child` stops at the row) and the row content draws its own horizontal tick via `.tree-tick::before` centered at `top: 50%` — so ticks always meet the row's middle even for tall argument rows with wrapped pills (a fixed `top` offset visibly missed them). Replaced the earlier nested box-in-box cards. Rows carry NO decorative dots (user preference — type color comes from text color + pill `border-l-4`; the legend keeps its dots as the key). Rows are transparent chips with `hover:bg-border/30`; opacity (dim/completed) lives on the `<li>`; arg labels are small uppercase chips at the start of each child row
+- **Active-cell selection** — a selected reference gets `ring-2 ring-accent` plus a `FillHandle` square (`bg-accent ring-1 ring-white`, absolute bottom-right) — on both compact pills and leaf cards. `selectedReference` is threaded through `CompactSubtree`. Ancestor cards of the selected ref get `ring-1 ring-accent`. Ring utilities (box-shadow) are used instead of border overrides to avoid class-ordering conflicts with type-color borders
+- **Step badges** — filled `bg-accent` green chips with white numerals
+- **Zoom controls** — Excel status-bar style cluster docked bottom-right of the outline card (`−` / click-to-reset `%` / `+` / `Fit`, 25%–200% in 25% steps). Mechanism: tree renders at natural size in a `w-max` wrapper, visually scaled via `transform: scale()`; an explicit-size spacer (natural size × zoom) keeps scrollbars honest since transforms don't affect layout. Natural size measured with a guarded `ResizeObserver` (`typeof ResizeObserver === 'undefined'` check for jsdom). `Fit` = `viewport.clientWidth / naturalWidth` snapped to 5%, safe no-op when layout metrics are zero
 
 ### Component Styling
 - Astro components use `<style>` blocks for component-scoped styles

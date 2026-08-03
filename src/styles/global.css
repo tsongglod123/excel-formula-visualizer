@@ -6,11 +6,16 @@
   --color-ink: #1c1917;
   --color-ink-muted: #78716c;
   --color-border: #e7e5e4;
-  --color-accent: #d97706;
-  --color-accent-hover: #b45309;
-  --color-accent-subtle: #fff7ed;
+  /* Excel green — the brand accent for the whole site (#107C41 is the green
+     used across modern Microsoft 365 / Excel chrome). */
+  --color-accent: #107c41;
+  --color-accent-hover: #0b5a30;
+  --color-accent-subtle: #ebf7ee;
 
   --font-family-sans: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  /* Office-style UI font for the visualizer — resolves to Segoe UI on Windows,
+     the typeface every Office app uses. */
+  --font-family-office: system-ui, 'Segoe UI', -apple-system, sans-serif;
   --font-family-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
@@ -61,6 +66,65 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* File-explorer style connector guides for the formula tree. Each row's
+     <li> draws a vertical segment (full height, except the last child which
+     stops at the row), and the row content draws its own horizontal tick
+     centered on itself — so the line always meets the row's middle, even
+     for tall argument rows with wrapped pills. */
+  .tree-children {
+    margin-left: 0.55rem;
+    padding-left: 0.9rem;
+  }
+  .tree-row {
+    position: relative;
+  }
+  .tree-row::after {
+    content: '';
+    position: absolute;
+    left: -0.9rem;
+    top: 0;
+    bottom: 0;
+    border-left: 1px solid var(--color-border);
+  }
+  .tree-row:last-child::after {
+    bottom: auto;
+    height: 1.05rem;
+  }
+  .tree-tick {
+    position: relative;
+  }
+  .tree-tick::before {
+    content: '';
+    position: absolute;
+    left: -0.9rem;
+    top: 50%;
+    width: 0.9rem;
+    border-top: 1px solid var(--color-border);
+    transform: translateY(-50%);
+  }
+}
+
+/* Function help popover (tap-first: opens on hover for mice, on tap for touch).
+   The trigger is a <button>, so prevent iOS double-tap zoom and the tap-highlight
+   flash. Rendered with position:fixed so it escapes the scrolling/zooming canvas. */
+.fn-trigger {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.doc-popover {
+  animation: doc-popover-in 150ms ease-out both;
+  transform-origin: top center;
+}
+@keyframes doc-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

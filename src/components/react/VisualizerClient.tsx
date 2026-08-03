@@ -53,35 +53,37 @@ export default function VisualizerClient({ ast: rawAst, translation, nodeTransla
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+    <div className="space-y-6 font-office">
+      {/* Controls and the full explanation sit side-by-side on wide screens —
+          both are compact reading content of similar height. */}
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+        <section aria-label="Evaluation controls">
+          <EvaluatorBar
+            ast={ast}
+            currentStepNodeId={currentStepNodeId}
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            isPlaying={isPlaying}
+            nodeTranslations={nodeTranslations}
+            onTogglePlay={togglePlay}
+            onStepForward={stepForward}
+            onStepBackward={stepBackward}
+            onReset={resetSteps}
+          />
+        </section>
+
+        <section aria-label="Plain English explanation">
+          <ExplanationPanel translation={translation} />
+        </section>
+      </div>
+
+      {/* The outline gets the full container width — it is the panel that
+          needs room to breathe on dense LET / nested-IF formulas. */}
       <section className="space-y-4" aria-label="Formula visualization">
-        <EvaluatorBar
-          ast={ast}
-          currentStepNodeId={currentStepNodeId}
-          currentStep={currentStep}
-          totalSteps={totalSteps}
-          isPlaying={isPlaying}
-          nodeTranslations={nodeTranslations}
-          onTogglePlay={togglePlay}
-          onStepForward={stepForward}
-          onStepBackward={stepBackward}
-          onReset={resetSteps}
-        />
-
         <FormulaOutline {...sharedOutlineProps} />
-
         <p className="text-xs text-ink-muted/70">
           Use the evaluator bar to walk through the formula step-by-step. Hover any block to trace its relationships.
         </p>
-      </section>
-
-      <section aria-label="Plain English explanation">
-        <ExplanationPanel
-          translation={translation}
-          nodeTranslations={nodeTranslations}
-          highlightedNodeId={hoveredNodeId}
-          onHoverNode={handleHoverNode}
-        />
       </section>
     </div>
   );

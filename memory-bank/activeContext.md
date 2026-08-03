@@ -6,6 +6,53 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
+### Completed: Fixed ARIA Audit Warning on the Tree (aria-selected)
+
+- Astro's dev-toolbar audit flagged "Missing attributes required for ARIA role" on the formula tree. Root cause: `role="treeitem"` requires `aria-selected` (per `aria-query`'s roles map — `treeitem.requiredProps = { 'aria-selected': null }`). Added `aria-selected="false"` to all 7 `<li role="treeitem">` sites in `FormulaOutline.tsx` (function/operator/literal/reference/parenthetical rows + compact leaf rows). Since this tree isn't keyboard-selectable, every item is `false` (per WAI-ARIA, omit-state is not valid for treeitem). Added a regression test locking in that every treeitem has `aria-selected="false"`. Test count 181 → 182.
+
+### Completed: Function-Help Popover (tap-first, full coverage)
+
+- **New `src/lib/functionDocs/`** — a full Excel function reference: ~200 short summaries + returns (one plain sentence each, ≤100 chars, office-worker friendly). `functionDocs.ts` holds the data; `index.ts` exposes `getFunctionDoc(name)` + `syntaxFor(name)`. Syntax is auto-generated from `FUNCTION_ARG_NAMES`, **always starts with `=`** (like Excel), and **optional arguments render in square brackets** via `FUNCTION_OPTIONAL_ARGS` (e.g. `=IFS(logical_test1, value_if_true1, [logical_test2], [value_if_true2], …)`; variadic lists collapse to `=SUM(number1, [number2], [number3], …)`; `FUNCTION_VARIADIC` adds the ellipsis for short variadic functions like IFS/SUMIFS/CHOOSE; overrides for IF/VLOOKUP/LET). Every function links to its official Microsoft support page: `https://support.microsoft.com/en-us/excel/functions/{func-name}-function` (lowercase, dots → hyphens, e.g. `STDEV.S` → `stdev-s-function`).
+- **FULL-COVERAGE INVARIANT** — `functionDocs.test.ts` iterates every key of `FUNCTION_ARG_NAMES` and asserts a non-blank summary + returns exist (plus length caps), so a future function can't be added without tooltip data. Also covers everyday special-cased functions (LET, IFS, SUMIFS, COUNTIFS, AVERAGEIFS, MINIFS, MAXIFS, CHOOSE) with their own syntax args.
+- **Popover in `FormulaOutline.tsx`** — function names are now `<button>`s (`.fn-trigger`) with `aria-haspopup`/`aria-expanded`/`aria-controls`. Opens tap-first (click → pinned) and on hover (300ms intent delay). Shows name, summary, syntax, returns, and a "Learn more on Microsoft Support" link (opens the official support page). Closes on Esc, click/tap outside, scroll, or zoom. Positioned `position:fixed` (escapes the zoomed/scrolling canvas) with bottom-edge flip; `touch-action: manipulation` + `-webkit-tap-highlight-color: transparent` on the trigger for iOS. Uses a React context (`FunctionDocContext`) so no props need threading through the recursive tree.
+- **Accessibility** — proper `<button>` trigger (no div/span anti-pattern), keyboard focusable, `focus-visible` rings, `aria-expanded`/`aria-controls` pattern, reduced-motion respected via the global CSS override.
+- Test count 167 → 181 (+9 functionDocs, +4 popover, +1 optional-brackets). All green + astro check 0 errors + build Complete + live SSR: `fn-trigger`, `aria-haspopup`, `doc-popover` all present in served page.
+
+### Completed: Editor Bar Polish (Icons + Equal Sizes)
+
+- **Update button icon** — `FormulaEditor` gained an `icon?: 'search' | 'refresh'` prop (default `'search'` keeps the landing page's magnifying glass); `visualize.astro` passes `icon="refresh"` (Heroicons arrow-path) so Update reads as "refresh the result".
+- **Copy URL → icon-only button** — `CopyUrlButton` is now a square icon button (`p-3` + `h-5 w-5` link icon → 46px tall, exactly matching Update's `py-3 text-sm` height). Feedback on copy: icon swaps to a green check + `aria-label`/`title` become "Copied" for 2s, with an sr-only `aria-live` status span for screen readers. Still wired via `astro:page-load` (per the ClientRouter scripting pattern).
+
+### Completed: Dropped Redundant "Current Formula" Section
+
+- **visualize.astro slimmed to an editor bar** — the read-only "Current Formula" display duplicated the formula that already appears in the FormulaEditor input AND the EvaluatorBar's fx formula bar (triple redundancy). The section is now a compact `p-4` bar: FormulaEditor (Update) flex-1 + CopyUrlButton. Also removed a duplicate sr-only `<label>` (the editor component already ships its own) and added an sr-only `<h1>Visualize formula</h1>` so the page keeps a heading for screen readers after the visible h1 was removed.
+
+### Completed: Tree Visual Redesign (File-Explorer Style)
+
+- **Nested cards → connector-line tree** — `FormulaOutline`'s `OutlineNode` rewritten from box-in-box cards to one row per node with file-explorer connector guides (`.tree-row` / `.tree-children` CSS in `global.css`: per-row vertical segment + horizontal tick, `:last-child` stops at the tick). ARIA upgraded to the tree pattern (`role="tree"/"treeitem"/"group"`); arg labels became small uppercase chips at the start of child rows; dim/completed opacity moved to the `<li>` so subtrees fade as a unit. Compact leaf pills, step chips, hover/selection rings, fill handle, and zoom controls all preserved. Tests: 2 role queries updated `group` → `treeitem` in FormulaOutline + VisualizerClient tests. 167/167 green, check/build clean, live SSR verified (tree role, 4 treeitems, connectors, arg labels).
+
+### Completed: Canvas Zoom Controls
+
+- **Excel status-bar zoom cluster** — `FormulaOutline` gained a slim footer with `−` / `%` (click to reset to 100%) / `+` / `Fit` buttons (25%–200%, 25% steps). For long formulas that overflow the panel, `Fit` scales the tree so its full width fits the viewport (snapped to 5%). Mechanism: `transform: scale()` on a `w-max` wrapper + explicit-size spacer for honest scrollbars + guarded `ResizeObserver` measurement. Two new tests (zoom behavior incl. actual transform assertion, min-zoom disable + Fit no-op safety in jsdom); two pre-existing tests needed `getByRole('button')` → `{ name: 'B2' }` scoping once zoom buttons existed. Test count 165 → 167.
+
+### Completed: Excel-Native Visual Identity
+
+- **Brand accent → Excel green** — `global.css` tokens: `--color-accent: #107c41` (modern M365 green), hover `#0b5a30`, subtle `#ebf7ee`. Every accent consumer (nav, links, buttons, focus rings, Play button, current-step callout) flips via the token — no per-file color edits needed.
+- **Excel formula bar** — `EvaluatorBar` formula display restyled as Excel's formula bar: boxed italic `fx` glyph + white strip in the office font; `FormulaSpan` leaves no longer force `font-mono`.
+- **Worksheet canvas** — `FormulaOutline` restructured into a card with a slim toolbar header ("Formula structure" label + color legend docked right) on a plain white canvas. (A gridline backdrop was shipped then removed same-day — users found it noisy/distracting behind dense trees.)
+- **Active-cell selection** — selected references now get Excel's active-cell look (`ring-2 ring-accent` + `FillHandle` square) on BOTH compact pills and leaf cards; `selectedReference` threaded through `CompactSubtree` (previously selection was invisible on compact pills — a real UX gap since most references render compact). Ancestor cards get `ring-1 ring-accent`. Step badges became filled green chips.
+- **Office font** — new `--font-family-office` token (`font-office` utility, Segoe UI on Windows) applied at the `VisualizerClient` root so the functional UI reads like an Office app; Bricolage Grotesque stays for site brand/headings.
+- Test count 164 → 165 (new active-cell selection test). All green + astro check clean + build clean + live SSR smoke verified (fx, grid, font-office, green chips all present).
+
+### Completed: Visualizer Layout Redesign + Scrollable Explanation
+
+- **Full-width outline** — After the breakdown removal left the right column sparse, `VisualizerClient` changed from one `lg:grid-cols-2` grid (visual left / explanation right) to a stacked layout: EvaluatorBar + Full Explanation side-by-side in a top row (both compact), `FormulaOutline` full container width below. The outline is the panel that needs room on dense formulas.
+- **Scrollable Full Explanation** — translation paragraph capped at `max-h-64 overflow-y-auto pr-2` so very long LET formulas stay readable instead of pushing the visualization far down the page. Test count 163 → 164.
+
+### Completed: Step-by-Step Breakdown Removed (Simplicity)
+
+- **ExplanationPanel simplified to full-explanation-only** — Removed the "Step-by-Step Breakdown" tree card (nested per-node hoverable translation lines), `TranslationNode` sub-component, and `dedupeChildren()` helper. Rationale: for the target audience (non-technical office workers), the breakdown duplicated what the EvaluatorBar's current-step display and the Full Explanation sentence already provide; it added scanning noise, especially on long formulas. Props slimmed to `{ translation }` only; `VisualizerClient` no longer passes `nodeTranslations`/`highlightedNodeId`/`onHoverNode` to it (EvaluatorBar still receives `nodeTranslations` for current-step descriptions). Test count 166 → 163.
+
 ### Completed: React Component Tests
 
 - **Testing infrastructure** — Installed jsdom v30.0.1, @testing-library/react v16.3.2 (+ dom peer v10.4.1, user-event v14.6.1, jest-dom v7.0.0). `vitest.config.mts` keeps `environment: 'node'` default + `setupFiles: ['./src/test/setup.ts']`; component tests opt into jsdom via `// @vitest-environment jsdom` docblock pragma (Vitest 4 removed environmentMatchGlobs). setup.ts registers jest-dom matchers AND manual `cleanup()` (required because `globals: false` disables RTL auto-cleanup).

@@ -6,6 +6,7 @@ export interface Props {
   placeholder?: string;
   buttonText?: string;
   id?: string;
+  icon?: 'search' | 'refresh';
 }
 
 const {
@@ -15,6 +16,7 @@ const {
   placeholder = 'e.g. =SUM(A1:A10)…',
   buttonText = 'Visualize',
   id = 'formula-input',
+  icon = 'search',
 } = Astro.props;
 ---
 
@@ -37,7 +39,13 @@ const {
     class="inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
   >
     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
-      <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+      {icon === 'refresh' ? (
+        // Arrow-path: "Update" re-submits the current formula.
+        <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+      ) : (
+        // Magnifying glass: default "Visualize" search-submit on the landing page.
+        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+      )}
     </svg>
     {buttonText}
   </button>

@@ -29,34 +29,20 @@ function renderClient({ plainAst = false }: { plainAst?: boolean } = {}) {
 describe('VisualizerClient', () => {
   it('renders the full visualizer with a class-instance AST (server shape)', () => {
     renderClient();
-    expect(screen.getByRole('group', { name: 'function: IF, step 6' })).toBeInTheDocument();
-    expect(screen.getByText('Step-by-Step Breakdown')).toBeInTheDocument();
+    expect(screen.getByRole('treeitem', { name: 'function: IF, step 6' })).toBeInTheDocument();
+    expect(screen.getByText('Full Explanation')).toBeInTheDocument();
   });
 
   it('renders with a serialized plain-object AST (Astro island boundary)', () => {
     // Regression test: the AST crosses client:load as plain JSON — methods and
     // the `type` getter are stripped. VisualizerClient must revive it.
     renderClient({ plainAst: true });
-    expect(screen.getByRole('group', { name: 'function: IF, step 6' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'reference: B2, step 1' })).toBeInTheDocument();
+    expect(screen.getByRole('treeitem', { name: 'function: IF, step 6' })).toBeInTheDocument();
+    expect(screen.getAllByText('B2').length).toBeGreaterThan(0);
     expect(screen.getByText('6 evaluation steps')).toBeInTheDocument();
     expect(
       screen.getByText("If cell B2 is greater than 100, then use the text 'High', otherwise use the text 'Low'")
     ).toBeInTheDocument();
-  });
-
-  it('syncs hover highlighting between the explanation and the outline', () => {
-    renderClient({ plainAst: true });
-    const explanationNode = screen.getByRole('button', { name: /cell B2$/ });
-    const outlineNode = screen.getByRole('button', { name: 'reference: B2, step 1' });
-
-    fireEvent.mouseEnter(explanationNode);
-    expect(explanationNode).toHaveAttribute('aria-current', 'true');
-    expect(outlineNode.className).toContain('ring-2');
-
-    fireEvent.mouseLeave(explanationNode);
-    expect(explanationNode).not.toHaveAttribute('aria-current');
-    expect(outlineNode.className).not.toContain('ring-2');
   });
 
   it('toggles playback and walks through steps manually', () => {

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { parse } from '../../lib/parser';
 import { ASTTraverser } from '../../lib/ast';
+import { getFunctionDoc } from '../../lib/functionDocs';
 import FormulaOutline from './FormulaOutline';
 
 const ast = parse('=IF(B2>100,"High","Low")');
@@ -33,39 +34,140 @@ describe('FormulaOutline', () => {
     expect(screen.getByText('Literal')).toBeInTheDocument();
   });
 
-  it('renders nodes with their evaluation step numbers', () => {
+  it('keeps the function card expanded and collapses the leaf-only condition into compact pills', () => {
     renderOutline();
-    expect(screen.getByRole('group', { name: 'function: IF, step 6' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'reference: B2, step 1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'literal: "High", step 4' })).toBeInTheDocument();
-    expect(screen.getByText('is greater than')).toBeInTheDocument();
+    expect(screen.getByRole('treeitem', { name: 'function: IF, step 6' })).toBeInTheDocument();
+    // The B2>100 condition renders as inline pills, not nested cards.
+    expect(screen.getByText('B2')).toBeInTheDocument();
+    expect(screen.getByText('100')).toBeInTheDocument();
+    expect(screen.getByText('"High"')).toBeInTheDocument();
+    expect(screen.getByText('"Low"')).toBeInTheDocument();
+    // No separate literal card buttons remain for the collapsed leaves.
+    expect(screen.queryByRole('button', { name: /literal:/ })).not.toBeInTheDocument();
   });
 
-  it('emits hover callbacks when hovering a node', () => {
+  it('emits hover callbacks when hovering a compact leaf pill', () => {
     const { props } = renderOutline();
-    const ref = screen.getByRole('button', { name: 'reference: B2, step 1' });
-    fireEvent.mouseEnter(ref);
+    const b2 = screen.getByText('B2').closest('span') as HTMLElement;
+    fireEvent.mouseEnter(b2);
     expect(props.onHoverNode).toHaveBeenLastCalledWith('node-0');
-    fireEvent.mouseLeave(ref);
+    fireEvent.mouseLeave(b2);
     expect(props.onHoverNode).toHaveBeenLastCalledWith(null);
   });
 
-  it('emits the reference name when a reference is clicked', () => {
+  it('emits the reference name when a compact reference pill is clicked', () => {
     const { props } = renderOutline();
-    fireEvent.click(screen.getByRole('button', { name: 'reference: B2, step 1' }));
+    fireEvent.click(screen.getByText('B2'));
     expect(props.onSelectReference).toHaveBeenCalledWith('B2');
   });
 
-  it('dims nodes outside the hovered subtree', () => {
+  it('highlights the compact pill for the hovered node', () => {
     renderOutline({ highlightedNodeId: 'node-0' });
-    const unrelated = screen.getByRole('button', { name: 'literal: "High", step 4' });
-    const hovered = screen.getByRole('button', { name: 'reference: B2, step 1' });
-    expect(unrelated.className).toContain('opacity-30');
-    expect(hovered.className).not.toContain('opacity-30');
+    const b2 = screen.getByRole('button', { name: 'B2' }) as HTMLElement;
+    expect(b2.className).toContain('ring-2');
   });
 
-  it('rings the node for the current evaluation step', () => {
-    renderOutline({ currentStep: 1 });
-    expect(screen.getByRole('button', { name: 'reference: B2, step 1' }).className).toContain('ring-2');
+  it('rings the collapsed operator pill for the current evaluation step', () => {
+    // Step 3 is the > operator; its compact pill should be ringed.
+    renderOutline({ currentStep: 3 });
+    const b2Pill = screen.getByRole('button', { name: 'B2' }) as HTMLElement;
+    const opPill = b2Pill.parentElement as HTMLElement;
+    expect(opPill.className).toContain('ring-2');
+  });
+
+  it('gives the selected reference the Excel active-cell treatment', () => {
+    renderOutline({ selectedReference: 'B2' });
+    const b2Pill = screen.getByRole('button', { name: 'B2' }) as HTMLElement;
+    expect(b2Pill.className).toContain('ring-accent');
+    // Fill-handle square at the bottom-right corner, like Excel's active cell.
+    expect(b2Pill.querySelector('span.bg-accent')).not.toBeNull();
+  });
+
+  it('marks every treeitem with the required aria-selected attribute', () => {
+    renderOutline();
+    const treeitems = screen.getAllByRole('treeitem');
+    expect(treeitems.length).toBeGreaterThan(0);
+    for (const item of treeitems) {
+      expect(item).toHaveAttribute('aria-selected', 'false');
+    }
+  });
+
+  it('zooms the canvas out and in with the status-bar controls', () => {
+    const { container } = renderOutline();
+    const label = screen.getByRole('button', { name: 'Reset zoom to 100%' });
+    expect(label).toHaveTextContent('100%');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom out' }));
+    expect(label).toHaveTextContent('75%');
+    // The tree wrapper is actually scaled, not just the label.
+    const canvas = container.querySelector('.w-max') as HTMLElement;
+    expect(canvas.style.transform).toBe('scale(0.75)');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Zoom in' }));
+    expect(label).toHaveTextContent('125%');
+
+    fireEvent.click(label); // reset
+    expect(label).toHaveTextContent('100%');
+  });
+
+  it('disables zoom out at the minimum and keeps Fit safe without layout metrics', () => {
+    renderOutline();
+    const zoomOut = screen.getByRole('button', { name: 'Zoom out' });
+    for (let i = 0; i < 5; i++) fireEvent.click(zoomOut); // 100% → 25% floor
+    expect(zoomOut).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' })).toHaveTextContent('25%');
+
+    // jsdom reports zero layout sizes, so Fit must be a safe no-op.
+    const fit = screen.getByRole('button', { name: 'Fit formula to panel' });
+    fireEvent.click(fit);
+    expect(screen.getByRole('button', { name: 'Reset zoom to 100%' })).toHaveTextContent('25%');
+  });
+
+  describe('function help popover', () => {
+    const IF_DOC = getFunctionDoc('IF');
+
+    it('opens the function name as a button with hover intent behaviour', () => {
+      vi.useFakeTimers();
+      renderOutline();
+      const name = screen.getByRole('button', { name: 'IF' });
+      fireEvent.mouseEnter(name);
+      expect(screen.queryByText(IF_DOC.summary)).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(screen.getByText(IF_DOC.summary)).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it('opens on tap/click and shows syntax, returns, and a Learn link', () => {
+      renderOutline();
+      fireEvent.click(screen.getByRole('button', { name: 'IF' }));
+      expect(screen.getByText(IF_DOC.summary)).toBeInTheDocument();
+      expect(screen.getByText('=IF(logical_test, value_if_true, [value_if_false])')).toBeInTheDocument();
+      expect(screen.getByText(IF_DOC.returns)).toBeInTheDocument();
+      const link = screen.getByRole('link', { name: /Learn more on Microsoft Support/ });
+      expect(link).toHaveAttribute('href', IF_DOC.learnUrl);
+    });
+
+    it('toggles aria-expanded on the trigger and closes on Escape', () => {
+      renderOutline();
+      const name = screen.getByRole('button', { name: 'IF' });
+      expect(name).toHaveAttribute('aria-expanded', 'false');
+      fireEvent.click(name);
+      expect(name).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button', { name: 'Close function help' })).toBeInTheDocument();
+      fireEvent.keyDown(document, { key: 'Escape' });
+      expect(screen.queryByText(IF_DOC.summary)).not.toBeInTheDocument();
+      expect(name).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('closes when clicking outside the popover', () => {
+      renderOutline();
+      fireEvent.click(screen.getByRole('button', { name: 'IF' }));
+      expect(screen.getByText(IF_DOC.summary)).toBeInTheDocument();
+      fireEvent.mouseDown(document.body);
+      expect(screen.queryByText(IF_DOC.summary)).not.toBeInTheDocument();
+    });
   });
 });

@@ -87,7 +87,7 @@ function FormulaSpan({ node, currentId }: { node: ASTNode; currentId: string | n
     );
   }
 
-  return wrap(<span className="font-mono">{node.getLabel()}</span>);
+  return wrap(<span>{node.getLabel()}</span>);
 }
 
 function buildTranslationMap(root: NodeTranslation): Map<string, string> {
@@ -196,9 +196,16 @@ export default function EvaluatorBar({
         </div>
       </div>
 
-      <div className="rounded-lg border border-border bg-surface p-3">
-        <p className="text-xs font-semibold text-ink-muted">Formula being evaluated</p>
-        <div className="mt-2 break-all font-mono text-sm leading-relaxed text-ink">
+      {/* Styled after Excel's formula bar — the one piece of chrome every
+          office worker recognizes at a glance. */}
+      <div className="flex items-stretch overflow-hidden rounded-lg border border-border bg-surface-elevated">
+        <span
+          className="flex w-10 shrink-0 select-none items-center justify-center border-r border-border bg-surface text-sm font-medium italic text-ink-muted"
+          aria-hidden="true"
+        >
+          fx
+        </span>
+        <div className="max-h-40 flex-1 overflow-y-auto break-all px-3 py-2.5 text-sm leading-relaxed text-ink">
           <span className="text-ink-muted">=</span>
           <FormulaSpan node={ast} currentId={currentStepNodeId} />
         </div>
