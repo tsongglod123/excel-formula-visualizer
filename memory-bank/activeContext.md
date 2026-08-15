@@ -6,6 +6,12 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
+### Completed: Deepen ASTTraverser with getNodeIndex (codebase-design skill)
+
+- **New deep primitive** — `ASTTraverser.getNodeIndex(root)` builds a reusable `{ byId, parentById }` index of the whole AST in a single walk, giving O(1) node + parent lookup. Applied the `codebase-design` deep-module lens: consumers needing several tree facts at once should build this index once and derive from it instead of calling `findNode`/`getAncestors`/`getSubtreeIds` separately (each re-walks the tree).
+- **Locality + perf win in `FormulaOutline`** — the hover-dimming memo previously orchestrated three separate full-tree traversals (`findNode`, `getAncestors`→`getParentMap`, plus an inline `collectIds`) to compute one `Set<string>` of dimmed ids. It now builds `getNodeIndex` once, derives ancestors via the parent map, and reuses `getSubtreeIds` on the (typically small) hovered subtree — one full walk instead of many. Serves the "performance for very large formulas" goal (progress.md TODO).
+- **Tests** — 3 new `getNodeIndex` tests (byId contents incl. leaf label, parentById incl. root-has-none, and the ancestor-derivation pattern the component now uses). FormulaOutline hover tests unchanged and green. 188 → 191 tests; `astro check` clean.
+
 ### Completed: Contributor Skills + CONTRIBUTING.md
 
 - **New skills installed** — `write-coding-standards-from-file` (project-local, from `github/awesome-copilot`, tracked in `skills-lock.json`) plus three global process skills from `mattpocock/skills`: `code-review` (two-axis standards+spec review), `diagnosing-bugs` (red-loop debug discipline), and `codebase-design` (deep-module vocabulary). These were deliberately scoped: the framework skills stay project-local, the process skills are global since they're repo-agnostic.

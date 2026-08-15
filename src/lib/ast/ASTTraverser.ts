@@ -38,6 +38,25 @@ export class ASTTraverser {
   }
 
   /**
+   * Builds a reusable index of the entire tree in a single pass. Returns maps
+   * for O(1) node lookup (`byId`) and parent lookup (`parentById`, root has no
+   * entry). Consumers that need several tree facts at once (e.g. ancestry + a
+   * subtree) should build this index once and derive from it instead of calling
+   * multiple traversal methods, each of which re-walks the tree.
+   */
+  static getNodeIndex(root: ASTNode): { byId: Map<string, ASTNode>; parentById: Map<string, string> } {
+    const byId = new Map<string, ASTNode>();
+    const parentById = new Map<string, string>();
+    const walk = (n: ASTNode, parentId?: string) => {
+      byId.set(n.id, n);
+      if (parentId !== undefined) parentById.set(n.id, parentId);
+      n.getChildren().forEach((child) => walk(child, n.id));
+    };
+    walk(root);
+    return { byId, parentById };
+  }
+
+  /**
    * Returns a map of node id → parent node id for the entire tree.
    */
   static getParentMap(root: ASTNode): Map<string, string> {

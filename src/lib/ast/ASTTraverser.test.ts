@@ -51,6 +51,33 @@ describe('ASTTraverser', () => {
     });
   });
 
+  describe('getNodeIndex', () => {
+    it('indexes every node by id for O(1) lookups', () => {
+      const { byId } = ASTTraverser.getNodeIndex(root);
+      expect(byId.size).toBe(7);
+      expect(byId.get('n2')?.getLabel()).toBe('A1:A10');
+      expect(byId.get('n7')).toBeUndefined();
+    });
+    it('records each node’s parent (root has none)', () => {
+      const { parentById } = ASTTraverser.getNodeIndex(root);
+      expect(parentById.get('n0')).toBeUndefined();
+      expect(parentById.get('n2')).toBe('n1');
+      expect(parentById.get('n1')).toBe('n3');
+      expect(parentById.get('n3')).toBe('n0');
+      expect(parentById.get('n5')).toBe('n0');
+    });
+    it('lets a caller derive ancestors without re-walking the tree', () => {
+      const { parentById } = ASTTraverser.getNodeIndex(root);
+      const ancestors = new Set<string>();
+      let parentId = parentById.get('n2');
+      while (parentId !== undefined) {
+        ancestors.add(parentId);
+        parentId = parentById.get(parentId);
+      }
+      expect(ancestors).toEqual(new Set(['n1', 'n3', 'n0']));
+    });
+  });
+
   describe('getAncestors', () => {
     it('returns all ancestors of a node', () => {
       expect(ASTTraverser.getAncestors(root, 'n2')).toEqual(new Set(['n1', 'n3', 'n0']));

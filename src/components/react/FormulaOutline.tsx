@@ -719,23 +719,26 @@ export default function FormulaOutline({
 
   const dimmedIds = useMemo(() => {
     if (!highlightedNodeId) return new Set<string>();
-    const hoveredNode = ASTTraverser.findNode(ast, highlightedNodeId);
-    if (!hoveredNode) return new Set<string>();
 
-    const ancestors = ASTTraverser.getAncestors(ast, highlightedNodeId);
-    const subtree = ASTTraverser.getSubtreeIds(hoveredNode);
-    const allIds = new Set<string>();
-    function collectIds(n: ASTNode) {
-      allIds.add(n.id);
-      n.getChildren().forEach(collectIds);
+    // One build-walk gives O(1) node + parent lookups for the whole tree, so
+    // computing the highlight sets needs no extra full-tree traversals (the
+    // previous approach re-walked the tree per fact via findNode/getAncestors
+    // plus its own collectIds).
+    const { byId, parentById } = ASTTraverser.getNodeIndex(ast);
+    const hovered = byId.get(highlightedNodeId);
+    if (!hovered) return new Set<string>();
+
+    const ancestors = new Set<string>();
+    let parentId = parentById.get(highlightedNodeId);
+    while (parentId !== undefined) {
+      ancestors.add(parentId);
+      parentId = parentById.get(parentId);
     }
-    collectIds(ast);
 
+    const subtree = ASTTraverser.getSubtreeIds(hovered);
     const dimmed = new Set<string>();
-    for (const id of allIds) {
-      if (!ancestors.has(id) && !subtree.has(id) && id !== highlightedNodeId) {
-        dimmed.add(id);
-      }
+    for (const id of byId.keys()) {
+      if (!ancestors.has(id) && !subtree.has(id) && id !== highlightedNodeId) dimmed.add(id);
     }
     return dimmed;
   }, [ast, highlightedNodeId]);
