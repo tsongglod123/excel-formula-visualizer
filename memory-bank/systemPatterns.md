@@ -72,6 +72,7 @@ Static utility class providing tree traversal operations:
 - `findNode(root, id)` — find node by id
 - `getSubtreeIds(node)` — all ids in subtree
 - `getParentMap(root)` — node id → parent id map
+- `getNodeIndex(root)` — single-pass `{ byId, parentById }` index for O(1) node + parent lookup (deep primitive: consumers needing several tree facts at once derive from it instead of re-walking via multiple methods)
 - `getAncestors(root, nodeId)` — ancestor id set
 - `subtreeHasReference(node, ref)` — check for reference in subtree
 - `computeEvaluationOrder(root)` — post-order traversal
@@ -294,7 +295,7 @@ The visualizer borrows Excel's UI vocabulary so office workers feel at home:
 ### Unit Tests
 - **Parser**: 54 tests covering operator precedence, functions, nested functions, cell references, ranges, comparison operators, text concatenation, percent, unary minus, booleans, numbers, strings, error cases, and complex formulas
 - **Translator**: 67 tests covering arithmetic, references, ranges, comparisons, functions, logical functions, lookup functions, text functions, date functions, complex formulas, parentheticals, and generic fallback
-- **ASTTraverser**: 13 tests covering findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap
+- **ASTTraverser**: 21 tests covering findNode, getSubtreeIds, getParentMap, getNodeIndex, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST
 - Run with `npm run test` (watch mode) or `npm run test:coverage` (single run with coverage)
 
 ### Testing Framework

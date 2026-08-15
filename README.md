@@ -17,7 +17,7 @@ Paste any Excel formula and instantly see a clear, interactive breakdown of its 
 ```bash
 npm install
 npm run dev        # → localhost:4321
-npm run test       # 121 passing tests
+npm run test       # 191 passing tests
 ```
 
 ## 🧞 Commands
@@ -44,6 +44,8 @@ Three independent layers, tested independently. The AST is the shared data contr
 |---|---|---|
 | **Project rules & conventions** | `.clinerules/` | Agent operating instructions |
 | **Architecture, tech stack, progress** | `memory-bank/` | In-depth project knowledge |
+| **Contributing guide** | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Code style, testing, commit conventions for contributors |
+| **Agent skills & MCP map** | `AGENTS.md` | When to trigger each skill/MCP tool |
 | **Public overview & quick start** | This README | GitHub visitors & contributors |
 
 ## 📁 Project Structure
@@ -56,7 +58,7 @@ Three independent layers, tested independently. The AST is the shared data contr
 ├── src/
 │   ├── components/          # Astro + React components
 │   ├── layouts/             # Page layouts
-│   ├── lib/                 # Parser, translator, utilities (121 tests)
+│   ├── lib/                 # Parser, translator, utilities (191 tests)
 │   ├── pages/               # File-based routes
 │   └── styles/              # Global CSS (Tailwind CSS v4)
 └── astro.config.mjs
@@ -76,6 +78,10 @@ Three independent layers, tested independently. The AST is the shared data contr
 ## 🌐 Deployment
 
 Deployed on Netlify with continuous deployment from GitHub. The `/visualize` route is server-rendered to parse formula query params; all other pages are static.
+
+## 🤝 Contributing
+
+Contributions are welcome! See the [Contributing Guide](./CONTRIBUTING.md) for code style, testing expectations, and commit conventions.
 
 ## 📄 License
 

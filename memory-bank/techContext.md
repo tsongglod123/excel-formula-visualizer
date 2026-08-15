@@ -22,7 +22,7 @@
 ### Testing
 | Package | Version | Purpose |
 |---|---|---|
-| **Vitest** | v4.1.10 | Unit + component testing framework (166 tests) |
+| **Vitest** | v4.1.10 | Unit + component testing framework (191 tests) |
 | **jsdom** | v30.0.1 | Browser environment for component tests (per-file `// @vitest-environment jsdom` pragma) |
 | **@testing-library/react** | v16.3.2 | React component rendering/queries in tests |
 | **@testing-library/dom** | v10.4.1 | Required peer of @testing-library/react |
@@ -149,6 +149,24 @@ Both require postinstall scripts (`allowScripts` in package.json):
 - Semantic HTML throughout
 
 ---
+
+## Skills & MCP Tooling
+
+Agent skills live in `.agents/skills/` (project-local, tracked via `skills-lock.json`) plus user-level global skills. They are invoked on demand by trigger. For the full trigger map see `AGENTS.md → Skills & MCP References`.
+
+| Skill | Scope | When to use |
+|---|---|---|
+| `codebase-design` | global | Designing/restructuring modules; deep-module vocabulary |
+| `code-review` | global | Two-axis review of a diff/PR before merge |
+| `diagnosing-bugs` | global | Debug loop for hard bugs / perf regressions |
+| `write-coding-standards-from-file` | project | Generate a coding-standards doc from existing source |
+| `astro-best-practices`, `create-component`, `add-integration`, `content-collection`, `docs-lookup` | project | Astro work (perf/a11y, scaffolding, wiring, schemas, lookups) |
+| `vercel-react-best-practices` | project | React component work (hydration, bundle size, re-renders) |
+| `frontend-design`, `web-design-guidelines` | global | Distinctive UI direction; web-interface-guideline compliance |
+| `commit-message-storyteller` | global | Narrative Conventional Commit messages |
+| `documentation-writer`, `microsoft-docs`, `find-skills` | global | Docs writing, Microsoft reference lookups, skill discovery |
+
+**MCP tools in use:** `sequential-thinking` (step-by-step diff analysis in commit workflow), Astro docs + Microsoft docs search/fetch, and `excel-mcp`/`excel-cli` for Excel workbook automation when the task involves producing or updating Excel files.
 
 ## Project File Structure
 
