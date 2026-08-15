@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { ASTNode } from '../../lib/ast';
 import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../../lib/ast';
 import { ASTTraverser } from '../../lib/ast';
@@ -89,6 +89,32 @@ function operatorSymbol(op: string): string {
   return op === 'unary-' ? '-' : op;
 }
 
+// Accessible name for a row's collapse/expand toggle.
+function collapseLabel(node: ASTNode): string {
+  if (node instanceof FunctionNode) return `${node.name} function`;
+  if (node instanceof OperatorNode) return `${operatorWord(node.operator)} expression`;
+  return 'parenthesized group';
+}
+
+// Animated container for a row's child list. Collapsing animates the grid row
+// from 1fr to 0fr (a height transition without measuring), and the inert
+// attribute removes the hidden rows from tab order and the accessibility tree.
+function CollapsibleChildren({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={`grid transition-[grid-template-rows] duration-300 ease-out ${collapsed ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]'}`}
+      inert={collapsed}
+      aria-hidden={collapsed || undefined}
+    >
+      <div className="min-h-0 overflow-hidden">
+        <ul role="group" className="tree-children mt-1 space-y-1">
+          {children}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 // A subtree whose leaves are all literals/references collapses into one
 // inline pill instead of one row per node, so long LET / nested-IF
 // formulas stay scannable for non-technical users.
@@ -116,6 +142,16 @@ interface FunctionDocContextValue {
   onClose: (fn: FunctionNode) => void;
 }
 const FunctionDocContext = createContext<FunctionDocContextValue | null>(null);
+
+// Collapsed-subtree state for the outline tree. Rows that render a child list
+// get a collapse toggle (like a file-explorer chevron); a context keeps the
+// toggle reachable from every OutlineNode without threading props through the
+// recursive tree.
+interface CollapseContextValue {
+  collapsedIds: Set<string>;
+  onToggle: (id: string) => void;
+}
+const CollapseContext = createContext<CollapseContextValue | null>(null);
 
 // A function name in the tree. It is a <button> (not a span) so a tap on
 // touch screens opens the help popover, and keyboard users can reach it.
@@ -264,6 +300,50 @@ function OutlineNode({
 }) {
   const style = STYLES[node.type];
   const stepNumber = evalOrder.get(node.id);
+
+  // ── Collapse/expand state for this row ──
+  const collapseCtx = useContext(CollapseContext);
+  const collapsed = collapseCtx?.collapsedIds.has(node.id) ?? false;
+  const canCollapse =
+    node instanceof FunctionNode
+      ? node.args.length > 0
+      : node instanceof OperatorNode
+        ? !isAllLeafSubtree(node)
+        : node instanceof ParentheticalNode;
+
+  const collapseBtn = canCollapse && collapseCtx ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        collapseCtx.onToggle(node.id);
+      }}
+      aria-expanded={!collapsed}
+      aria-label={`${collapsed ? 'Expand' : 'Collapse'} ${collapseLabel(node)}`}
+      className="-mr-1 mr-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-ink-muted transition hover:bg-border/40 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <svg
+        className={`h-3.5 w-3.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={2}
+        stroke="currentColor"
+        aria-hidden="true"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+      </svg>
+    </button>
+  ) : null;
+
+  // Small "N hidden" chip so a collapsed subtree still tells the user what's
+  // tucked away without expanding it.
+  const hiddenChip =
+    canCollapse && collapsed ? (
+      <span className="shrink-0 rounded-full border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium text-ink-muted">
+        {node.getChildren().length} hidden
+      </span>
+    ) : null;
+
   const isCurrentStep = currentStep !== null && stepNumber === currentStep;
   const isCompleted = currentStep !== null && stepNumber !== undefined && stepNumber < currentStep;
   const isHovered = highlightedNodeId === node.id;
@@ -347,11 +427,13 @@ function OutlineNode({
           onMouseEnter={() => onHover(node.id)}
           onMouseLeave={() => onHover(null)}
         >
+          {collapseBtn}
           {argLabelEl}
           {stepBadge}
           <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">{word}</span>
+          {hiddenChip}
         </div>
-        <ul role="group" className="tree-children mt-1 space-y-1">
+        <CollapsibleChildren collapsed={collapsed}>
           {op.getChildren().map((child) =>
             isAllLeafSubtree(child) ? (
               <li key={child.id} role="treeitem" aria-selected="false" className="tree-row">
@@ -375,7 +457,7 @@ function OutlineNode({
               />
             )
           )}
-        </ul>
+        </CollapsibleChildren>
       </li>
     );
   }
@@ -389,13 +471,15 @@ function OutlineNode({
           onMouseEnter={() => onHover(node.id)}
           onMouseLeave={() => onHover(null)}
         >
+          {collapseBtn}
           {argLabelEl}
           {stepBadge}
           <FunctionNameButton fn={fn} style={style} />
           <span className="text-xs text-ink-muted">function</span>
+          {hiddenChip}
         </div>
         {fn.args.length > 0 && (
-          <ul role="group" className="tree-children mt-1 space-y-1">
+          <CollapsibleChildren collapsed={collapsed}>
             {fn.args.map((arg, i) => {
               const label = getArgName(fn.name, i, fn.args.length);
               return isAllLeafSubtree(arg) ? (
@@ -424,7 +508,7 @@ function OutlineNode({
                 />
               );
             })}
-          </ul>
+          </CollapsibleChildren>
         )}
       </li>
     );
@@ -438,11 +522,13 @@ function OutlineNode({
         onMouseEnter={() => onHover(node.id)}
         onMouseLeave={() => onHover(null)}
       >
+        {collapseBtn}
         {argLabelEl}
         {stepBadge}
         <span className="text-xs font-medium uppercase tracking-wide text-ink-muted">group</span>
+        {hiddenChip}
       </div>
-      <ul role="group" className="tree-children mt-1 space-y-1">
+      <CollapsibleChildren collapsed={collapsed}>
         <OutlineNode
           node={paren.expression}
           depth={depth + 1}
@@ -455,7 +541,7 @@ function OutlineNode({
           onHover={onHover}
           onClickRef={onClickRef}
         />
-      </ul>
+      </CollapsibleChildren>
     </li>
   );
 }
@@ -473,6 +559,29 @@ export default function FormulaOutline({
   const contentRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(1);
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });
+
+  // ── Collapse state for the outline tree ──
+  // Rows that render a child list get a toggle; collapsed subtrees are hidden
+  // with `inert` so they leave the tab order and the accessibility tree.
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+  // A freshly-parsed formula starts fully expanded (view-transition navigation
+  // between share links can mount a new AST into a live island).
+  useEffect(() => {
+    setCollapsedIds(new Set());
+  }, [ast]);
+
+  const toggleCollapse = (id: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   // ── Function-help popover state (tap-first; hover opens on machines with a pointer) ──
   const [docPop, setDocPop] = useState<{ name: string; left: number; top: number; bottom: number; pinned: boolean } | null>(null);
@@ -578,6 +687,7 @@ export default function FormulaOutline({
   }, [docPop]);
 
   const docCtx = { openName: docPop?.name ?? null, onOpen: onOpenFn, onClose: onCloseFn };
+  const collapseCtx = { collapsedIds, onToggle: toggleCollapse };
 
   // Measure the tree's natural (unscaled) size. Transforms never change
   // layout, so offsetWidth/Height stay stable across zoom levels.
@@ -671,6 +781,7 @@ export default function FormulaOutline({
         <div style={contentSize.width > 0 ? { width: contentSize.width * zoom, height: contentSize.height * zoom } : undefined}>
           <div ref={contentRef} className="w-max" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
             <FunctionDocContext.Provider value={docCtx}>
+            <CollapseContext.Provider value={collapseCtx}>
             <ul role="tree" aria-label="Formula structure tree" className="min-w-max">
               <OutlineNode
                 node={ast}
@@ -685,6 +796,7 @@ export default function FormulaOutline({
                 onClickRef={handleClickRef}
               />
             </ul>
+            </CollapseContext.Provider>
             </FunctionDocContext.Provider>
           </div>
         </div>

@@ -8,16 +8,16 @@ import { getFunctionDoc } from '../../lib/functionDocs';
 import FormulaOutline from './FormulaOutline';
 
 const ast = parse('=IF(B2>100,"High","Low")');
-const evalOrder = ASTTraverser.computeEvaluationStepMap(ast);
 
 function renderOutline(overrides: Partial<Parameters<typeof FormulaOutline>[0]> = {}) {
+  const effectiveAst = overrides.ast ?? ast;
   const props = {
-    ast,
+    ast: effectiveAst,
     highlightedNodeId: null,
     onHoverNode: vi.fn(),
     selectedReference: null,
     onSelectReference: vi.fn(),
-    evalOrder,
+    evalOrder: ASTTraverser.computeEvaluationStepMap(effectiveAst),
     currentStep: null,
     ...overrides,
   };
@@ -168,6 +168,87 @@ describe('FormulaOutline', () => {
       expect(screen.getByText(IF_DOC.summary)).toBeInTheDocument();
       fireEvent.mouseDown(document.body);
       expect(screen.queryByText(IF_DOC.summary)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('collapsible groups', () => {
+    const deepAst = parse('=IF(SUM(A1:A10)>100,"Yes","No")');
+
+    it('gets a collapse toggle on rows that have children, expanded by default', () => {
+      renderOutline({ ast: deepAst });
+      const toggle = screen.getByRole('button', { name: 'Collapse IF function' });
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      // Children are visible before collapsing (the compact SUM pill renders).
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+    });
+
+    it('collapses the child list, shows a hidden-count chip, and marks the list inert', () => {
+      renderOutline({ ast: deepAst });
+      const toggle = screen.getByRole('button', { name: 'Collapse IF function' });
+      // The first argument renders as one compact pill: SUM (A1:A10)>100.
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+
+      fireEvent.click(toggle);
+
+      const expandBtn = screen.getByRole('button', { name: 'Expand IF function' });
+      expect(expandBtn).toHaveAttribute('aria-expanded', 'false');
+      // A small count chip tells users what is tucked away without expanding.
+      expect(screen.getByText('3 hidden')).toBeInTheDocument();
+      // Hidden rows leave the tab order (inert + aria-hidden on the wrapper).
+      const ifItem = screen.getByRole('treeitem', { name: /^function: IF/ });
+      const childrenWrapper = ifItem.querySelector('.grid') as HTMLElement;
+      expect(childrenWrapper).toHaveAttribute('inert');
+      expect(childrenWrapper).toHaveAttribute('aria-hidden', 'true');
+      // Compact argument rows are no longer exposed to the a11y tree.
+      expect(screen.queryByRole('button', { name: 'SUM' })).not.toBeInTheDocument();
+    });
+
+    it('collapses compact argument rows and restores them on expand without touching ancestors', () => {
+      renderOutline({ ast: deepAst });
+      // The first IF argument renders as one compact pill (SUM wrapping A1:A10).
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse IF function' }));
+      // Rows inside the collapsed list disappear from the a11y tree entirely.
+      expect(screen.queryByRole('button', { name: 'SUM' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Expand IF function' }));
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+    });
+
+    it('shows no toggle when the row has no child list to collapse', () => {
+      renderOutline({ ast: parse('=NOW()') });
+      expect(screen.queryByRole('button', { name: /^(Collapse|Expand) / })).not.toBeInTheDocument();
+    });
+
+    it('expands a previously collapsed subtree again', () => {
+      renderOutline({ ast: deepAst });
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse IF function' }));
+      expect(screen.getByText('3 hidden')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'SUM' })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Expand IF function' }));
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+      expect(screen.queryByText('3 hidden')).not.toBeInTheDocument();
+    });
+
+    it('resets collapsed subtrees when a new formula is rendered', () => {
+      const { rerender } = renderOutline({ ast: deepAst });
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse IF function' }));
+      expect(screen.getByRole('button', { name: 'Expand IF function' })).toBeInTheDocument();
+
+      const nextProps = {
+        ast,
+        highlightedNodeId: null,
+        onHoverNode: vi.fn(),
+        selectedReference: null,
+        onSelectReference: vi.fn(),
+        evalOrder: ASTTraverser.computeEvaluationStepMap(ast),
+        currentStep: null,
+      };
+      rerender(<FormulaOutline {...nextProps} />);
+      expect(screen.getByRole('button', { name: 'Collapse IF function' })).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.queryByText('3 hidden')).not.toBeInTheDocument();
     });
   });
 });
