@@ -251,4 +251,153 @@ describe('FormulaOutline', () => {
       expect(screen.queryByText('3 hidden')).not.toBeInTheDocument();
     });
   });
+
+  describe('reference tooltips', () => {
+    const rangeAst = parse('=SUM(A1:A10)');
+
+    it('shows range details after a hover-intent delay', () => {
+      vi.useFakeTimers();
+      renderOutline({ ast: rangeAst });
+      const pill = screen.getByRole('button', { name: 'A1:A10' });
+      fireEvent.mouseEnter(pill);
+      // Nothing yet — the tooltip waits for a short intent delay.
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+      expect(screen.getByText(/10 rows × 1 column/)).toBeInTheDocument();
+      expect(screen.getByText(/1× in this formula/)).toBeInTheDocument();
+      expect(pill).toHaveAttribute('aria-describedby', 'ref-tooltip');
+      vi.useRealTimers();
+    });
+
+    it('reports occurrence counts for a repeated reference', () => {
+      vi.useFakeTimers();
+      renderOutline({ ast: parse('=A1+A1*2') });
+      const pills = screen.getAllByRole('button', { name: 'A1' });
+      fireEvent.mouseEnter(pills[0]);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByText(/2× in this formula/)).toBeInTheDocument();
+      vi.useRealTimers();
+    });
+
+    it('closes on mouse leave and clears the aria association', () => {
+      vi.useFakeTimers();
+      renderOutline({ ast: rangeAst });
+      const pill = screen.getByRole('button', { name: 'A1:A10' });
+      fireEvent.mouseEnter(pill);
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      expect(screen.getByRole('tooltip')).toBeInTheDocument();
+      fireEvent.mouseLeave(pill);
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+      expect(pill).not.toHaveAttribute('aria-describedby');
+      vi.useRealTimers();
+    });
+  });
+
+  describe('reference connection lines', () => {
+    const multiAst = parse('=A1+A1*2');
+
+    it('draws a connector between occurrences of the selected reference', () => {
+      const { container } = renderOutline({ ast: multiAst, selectedReference: 'A1' });
+      const svg = container.querySelector('[data-testid="ref-connection-lines"]');
+      expect(svg).not.toBeNull();
+      // One connector joins the two A1 occurrences.
+      expect(svg!.querySelectorAll('path[stroke]').length).toBe(1);
+    });
+
+    it('draws nothing when no reference is selected', () => {
+      const { container } = renderOutline({ ast: multiAst });
+      expect(container.querySelector('[data-testid="ref-connection-lines"]')).toBeNull();
+    });
+
+    it('hides connectors whose occurrences are inside collapsed subtrees', () => {
+      // IF renders a child list (unlike the all-leaf operator in the tests
+      // above), so collapsing it puts both A1 pills inside an inert wrapper.
+      const ifAst = parse('=IF(A1>0, A1, 0)');
+      const { container } = renderOutline({ ast: ifAst, selectedReference: 'A1' });
+      expect(container.querySelector('[data-testid="ref-connection-lines"]')).not.toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse IF function' }));
+      expect(container.querySelector('[data-testid="ref-connection-lines"]')).toBeNull();
+    });
+  });
+
+  describe('structural nesting', () => {
+    // LET's third argument contains a function-in-function (IF wrapping AND),
+    // so it breaks out of pill form into a structural row.
+    const nestedAst = parse('=LET(a, 1, IF(AND(a>0, a<10), "ok"))');
+
+    it('renders a deeply nested function call as its own row with a collapse toggle', () => {
+      renderOutline({ ast: nestedAst });
+      expect(screen.getByRole('treeitem', { name: /^function: LET/ })).toBeInTheDocument();
+      expect(screen.getByRole('treeitem', { name: /^function: IF/ })).toBeInTheDocument();
+      // Both levels get independent collapse toggles.
+      expect(screen.getByRole('button', { name: 'Collapse LET function' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Collapse IF function' })).toBeInTheDocument();
+    });
+
+    it('keeps simple calls and flat expressions compact for office scanning', () => {
+      // One level of function calls → the condition stays a single inline pill.
+      renderOutline({ ast: parse('=IF(SUM(A1:A10)>100, "Yes", "No")') });
+      expect(screen.getByRole('treeitem', { name: /^function: IF/ })).toBeInTheDocument();
+      // SUM renders inside the compact pill (still an interactive doc trigger),
+      // not as its own row.
+      expect(screen.queryByRole('treeitem', { name: /^function: SUM/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'SUM' })).toBeInTheDocument();
+      // IF row + three argument rows — nothing more.
+      expect(screen.getAllByRole('treeitem')).toHaveLength(4);
+    });
+
+    it('keeps a flat operator expression as one compact pill row with no toggles', () => {
+      renderOutline({ ast: parse('=A1+B1*2') });
+      expect(screen.getAllByRole('treeitem')).toHaveLength(1);
+      expect(screen.queryByRole('button', { name: /^(Collapse|Expand) / })).not.toBeInTheDocument();
+    });
+
+    it('shows an evaluation-step badge on every structural row', () => {
+      renderOutline({ ast: nestedAst });
+      const ifRow = screen.getByRole('treeitem', { name: /^function: IF/ });
+      const badge = ifRow.querySelector('.bg-accent');
+      expect(badge).not.toBeNull();
+      expect(badge!.textContent).toMatch(/^\d+$/);
+    });
+  });
+
+  describe('expand and collapse all', () => {
+    // LET has 3 args; the nested IF has 2 — so only LET shows "3 hidden".
+    const bulkAst = parse('=LET(a, 1, IF(AND(a>0, a<10), "ok"))');
+
+    it('collapses every group with one click and expands them again', () => {
+      renderOutline({ ast: bulkAst });
+      expect(screen.getByRole('treeitem', { name: /^function: IF/ })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
+      // Only the root LET row remains; nested rows leave the a11y tree.
+      expect(screen.queryByRole('treeitem', { name: /^function: IF/ })).not.toBeInTheDocument();
+      expect(screen.getByText('3 hidden')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Expand all' }));
+      expect(screen.getByRole('treeitem', { name: /^function: IF/ })).toBeInTheDocument();
+      expect(screen.queryByText('3 hidden')).not.toBeInTheDocument();
+    });
+
+    it('disables the buttons when there is nothing left to collapse or expand', () => {
+      renderOutline({ ast: bulkAst });
+      expect(screen.getByRole('button', { name: 'Expand all' })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }));
+      expect(screen.getByRole('button', { name: 'Collapse all' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Expand all' })).not.toBeDisabled();
+    });
+
+    it('hides the bulk buttons when the formula has no collapsible groups', () => {
+      renderOutline({ ast: parse('=A1+B1*2') });
+      expect(screen.queryByRole('button', { name: 'Collapse all' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Expand all' })).not.toBeInTheDocument();
+    });
+  });
 });

@@ -8,21 +8,22 @@ import VisualizerClient from './VisualizerClient';
 
 const FORMULA = '=IF(B2>100,"High","Low")';
 
-function buildProps() {
-  const ast = parse(FORMULA);
+function buildProps(formula = FORMULA) {
+  const ast = parse(formula);
   return {
     ast,
     translation: translate(ast),
     nodeTranslations: translateNode(ast),
+    formula,
   };
 }
 
-function renderClient({ plainAst = false }: { plainAst?: boolean } = {}) {
-  const { ast, translation, nodeTranslations } = buildProps();
+function renderClient({ plainAst = false, formula = FORMULA }: { plainAst?: boolean; formula?: string } = {}) {
+  const { ast, translation, nodeTranslations } = buildProps(formula);
   // Simulate the Astro island boundary: class instances become plain objects.
   const astProp = (plainAst ? JSON.parse(JSON.stringify(ast)) : ast) as ASTNode;
   return render(
-    <VisualizerClient ast={astProp} translation={translation} nodeTranslations={nodeTranslations} />
+    <VisualizerClient ast={astProp} translation={translation} nodeTranslations={nodeTranslations} formula={formula} />
   );
 }
 
@@ -60,5 +61,23 @@ describe('VisualizerClient', () => {
     expect(screen.getByText('Step 1 of 6')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Reset evaluation' }));
     expect(screen.getByText('6 evaluation steps')).toBeInTheDocument();
+  });
+
+  it('records the visualized formula in localStorage history', () => {
+    window.localStorage.clear();
+    renderClient({ formula: '=SUM(A1:A10)' });
+    const raw = window.localStorage.getItem('efv:recent-formulas');
+    expect(raw).not.toBeNull();
+    expect(JSON.parse(raw as string)[0].formula).toBe('=SUM(A1:A10)');
+  });
+
+  it('draws connection lines between occurrences of a clicked reference', () => {
+    const { container } = renderClient({ formula: '=B2*2+B2' });
+    const [first] = screen.getAllByRole('button', { name: 'B2' });
+    fireEvent.click(first);
+    expect(container.querySelector('[data-testid="ref-connection-lines"] path[stroke]')).not.toBeNull();
+    // Clicking again deselects the reference and removes the lines.
+    fireEvent.click(screen.getAllByRole('button', { name: 'B2' })[0]);
+    expect(container.querySelector('[data-testid="ref-connection-lines"]')).toBeNull();
   });
 });

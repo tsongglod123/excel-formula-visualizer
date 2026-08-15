@@ -2,9 +2,28 @@
 
 ## Current Focus
 
-The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 188 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups just shipped; next up is visual connection lines between related references.
+The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 226 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups, connection lines, reference tooltips, formula history, structural nesting, compact-by-default pills, and Expand/Collapse-all just shipped. Next up: evaluator keyboard shortcuts, then Playwright E2E.
 
 ## Recent Changes
+
+### Completed: Compact, Office-Friendly Tree (compactness revisit)
+
+- **Problem** — after the structural-nesting fix, every function call became a row, so even `=IF(SUM(A1:A10)>100,"Yes","No")` exploded into 6 rows. Too tall for quick office scanning.
+- **Rule change** — `isCompactSubtree` now pills a subtree when it contains **no function call nested inside another function call** (`containsFunctionCall` helper). Simple calls (`SUM(A1:A10)`) and flat fragments (`B2>100`) stay compact pills; genuinely nested calls (`LET(…, IF(AND(…), …))`) break out into rows at each nesting boundary. The flagship formula now renders 4 rows instead of 6; `CompactSubtree`'s function branch is live again.
+- **Bulk controls** — the outline toolbar gained **Expand all / Collapse all** buttons (`collectCollapsibleIds` mirrors OutlineNode's row-vs-pill decision; buttons hide when nothing is collapsible, disable at the all-expanded/all-collapsed bounds, and dismiss open overlays).
+- **Tests** — 223 → 226: reworked the 4 `structural nesting` tests to the new rule + 3 new `expand and collapse all` tests. astro check 0 errors; SSR-verified compact (4-row flagship), deep (nested IF row), and flat (no bulk buttons) renders.
+
+### Completed: Structural Nested Rows (isAllLeafSubtree revisit)
+
+- **Root cause** — `isAllLeafSubtree` had no `false` base case (literals/references → true; every other node recursed to leaves, which are always literals/references), so it returned `true` for *every* AST: the recursive `OutlineNode` child path was dead code and nested LET/IF chains flattened into one wide pill.
+- **Fix** — replaced it with `isCompactSubtree`: a subtree pills only when it's a *flat expression* (operators/literals/references, no function calls, no parentheticals). Function calls and groups now get their own rows with collapse toggles and evaluation-step badges; flat fragments like `B2>100` keep the compact-pill look. All 219 pre-existing tests passed unchanged; +4 new `structural nesting` tests (nested function rows, flat stays compact, operator-with-function becomes structural, step badges on every row). 219 → 223 tests. SSR-verified: `/visualize?formula==LET(x,5,IF(x>10,...))` serves nested `function: IF` treeitem rows with toggles; `=A1+B1*2` stays a single pill row.
+
+### Completed: Reference Connection Lines, Reference Tooltips, Formula History
+
+- **Connection lines** — clicking a reference pill now also draws accent-colored bezier connectors between every occurrence in the outline. An absolutely-positioned SVG (`data-testid="ref-connection-lines"`) lives inside the zoom canvas (`contentRef`), so lines scale with zoom automatically; positions are measured via transform-free `offsetLeft/offsetTop` walks (correct at any zoom). Pills carry `data-ref`; occurrences inside collapsed (`inert`) subtrees are skipped. Re-measured on selection/AST/collapse/content-resize.
+- **Reference tooltips** — hovering or focusing a reference pill opens a tooltip (200ms intent delay) showing kind (Cell/Range), geometry (`10 rows × 1 column`, `Entire column`, …), sheet (+ end sheet for 3D refs), absolute/relative/mixed addressing, and an occurrence count. New pure lib: `src/lib/referenceInfo.ts` (`describeReference`, `countReferenceOccurrences`). Tooltip is fixed-position with bottom-edge flip, `role="tooltip"` + imperative `aria-describedby` on the anchor pill, closes on leave/blur/Escape/scroll/zoom/collapse. A `RefTooltipContext` (same pattern as FunctionDocContext) reaches recursive pills without prop drilling.
+- **Formula history** — `src/lib/formulaHistory.ts` (localStorage, key `efv:recent-formulas`, capped at 8, deduped, all I/O guarded). `VisualizerClient` gained a `formula` prop and records each successful visualization. New `RecentFormulas` island renders clickable chips (→ `/visualize?formula=…`) on the landing hero and the visualize editor, with a Clear button; renders nothing when empty.
+- **Tests** — 188 → 219 (referenceInfo 10, formulaHistory 6, RecentFormulas 4, FormulaOutline +6, VisualizerClient +2).
 
 ### Completed: Deepen ASTTraverser with getNodeIndex (codebase-design skill)
 
@@ -104,21 +123,18 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## In Progress
 
-_None active — collapsible groups shipped. See Next Steps for the queued work._
+_None active — collapsible groups, connection lines, reference tooltips, formula history, and structural nested rows shipped. See Next Steps for the queued work._
 
 ## Next Steps (Priority Order)
 
-1. Add visual connection lines between related cell references in the reference map
-2. Add tooltips with reference details (range info, value if available)
-3. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
-4. Add formula history / recent formulas feature
-5. Add end-to-end tests with Playwright (real browser, island hydration)
+1. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
+2. Add end-to-end tests with Playwright (real browser, island hydration)
 
 ## Active Decisions & Considerations
 
 - **Collapsible groups (resolved)**: React `useState` in `FormulaOutline` (`Set<string>`), CSS grid-rows transition for height, `inert` + `aria-hidden` on hidden subtrees. State intentionally not persisted; resets on new AST.
-- **Reference connection lines**: Needs careful implementation — SVG overlay or canvas-based approach. Must work with responsive layout (site is light-only; no dark mode).
-- **Tooltip positioning**: Use floating UI or Popper.js for smart positioning that avoids viewport edge clipping.
+- **Reference connection lines (resolved)**: SVG overlay inside the zoom canvas (not a separate layer) — transform-free offset measurement, lines scale with zoom for free, `[inert]`-collapsed occurrences excluded.
+- **Tooltip positioning (resolved)**: Reused the function-doc popover pattern — `position: fixed` (escapes the zoomed/scrolling canvas), bottom-edge flip, viewport clamping. No floating-UI dependency needed.
 - **Keyboard shortcuts**: Need to scope shortcuts to the evaluator component only (not global) to avoid conflicts with browser defaults.
 
 ## Important Patterns & Preferences

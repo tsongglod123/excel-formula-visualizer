@@ -6,6 +6,7 @@ import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNo
 import { ASTTraverser } from '../../lib/ast';
 import { getArgName } from '../../lib/functionArgs';
 import { getFunctionDoc } from '../../lib/functionDocs';
+import { describeReference, countReferenceOccurrences } from '../../lib/referenceInfo';
 
 interface FormulaOutlineProps {
   ast: ASTNode;
@@ -115,12 +116,38 @@ function CollapsibleChildren({ collapsed, children }: { collapsed: boolean; chil
   );
 }
 
-// A subtree whose leaves are all literals/references collapses into one
-// inline pill instead of one row per node, so long LET / nested-IF
-// formulas stay scannable for non-technical users.
-function isAllLeafSubtree(node: ASTNode): boolean {
+// A subtree renders as one inline pill when it contains no function call
+// nested inside another function call. Simple calls like SUM(A1:A10) and flat
+// fragments like `B2 > 100` stay compact; genuinely nested calls
+// (LET(…, IF(AND(…), …))) break out into structural rows with collapse
+// toggles and step badges — the compact default office workers scan fastest.
+function isCompactSubtree(node: ASTNode): boolean {
   if (node instanceof LiteralNode || node instanceof ReferenceNode) return true;
-  return node.getChildren().every(isAllLeafSubtree);
+  if (node instanceof FunctionNode) return !node.args.some(containsFunctionCall);
+  return node.getChildren().every(isCompactSubtree);
+}
+
+function containsFunctionCall(node: ASTNode): boolean {
+  if (node instanceof FunctionNode) return true;
+  return node.getChildren().some(containsFunctionCall);
+}
+
+// Every node id that renders as a structural row with a child list (i.e. rows
+// that carry a collapse toggle). Mirrors OutlineNode's rendering decision:
+// the root is always a row; every other node is a row iff it is not compact.
+// Compact subtrees render as pills, which never contain rows.
+function collectCollapsibleIds(node: ASTNode, out: string[] = [], isRow = true): string[] {
+  if (isRow) {
+    const collapsible =
+      node instanceof FunctionNode
+        ? node.args.length > 0
+        : node instanceof OperatorNode
+          ? !isCompactSubtree(node)
+          : node instanceof ParentheticalNode;
+    if (collapsible) out.push(node.id);
+    node.getChildren().forEach((child) => collectCollapsibleIds(child, out, !isCompactSubtree(child)));
+  }
+  return out;
 }
 
 // The little square at the bottom-right corner of Excel's active cell.
@@ -152,6 +179,16 @@ interface CollapseContextValue {
   onToggle: (id: string) => void;
 }
 const CollapseContext = createContext<CollapseContextValue | null>(null);
+
+// Reference-detail tooltip context. A single tooltip lives in FormulaOutline;
+// reference pills anywhere in the (recursive) tree open it through this
+// context instead of threading handlers down every level.
+interface RefTooltipContextValue {
+  openRef: string | null;
+  onOpen: (ref: string, el: HTMLElement) => void;
+  onClose: () => void;
+}
+const RefTooltipContext = createContext<RefTooltipContextValue | null>(null);
 
 // A function name in the tree. It is a <button> (not a span) so a tap on
 // touch screens opens the help popover, and keyboard users can reach it.
@@ -192,6 +229,7 @@ function CompactSubtree({
   onClickRef?: (ref: string) => void;
 }) {
   const style = STYLES[node.type] ?? STYLES.parenthetical;
+  const tipCtx = useContext(RefTooltipContext);
   const hl = (id: string) => (highlightedNodeId === id || currentStepNodeId === id ? `ring-2 ${style.ring}` : "");
 
   if (node instanceof LiteralNode || node instanceof ReferenceNode) {
@@ -202,8 +240,17 @@ function CompactSubtree({
     const pillRing = isSelected ? 'ring-2 ring-accent' : hl(node.id);
     return (
       <span
-        onMouseEnter={() => onHover(node.id)}
-        onMouseLeave={() => onHover(null)}
+        data-ref={isRef ? (node as ReferenceNode).reference : undefined}
+        onMouseEnter={(e) => {
+          onHover(node.id);
+          if (isRef) tipCtx?.onOpen((node as ReferenceNode).reference, e.currentTarget);
+        }}
+        onMouseLeave={() => {
+          onHover(null);
+          if (isRef) tipCtx?.onClose();
+        }}
+        onFocus={isRef ? (e) => tipCtx?.onOpen((node as ReferenceNode).reference, e.currentTarget) : undefined}
+        onBlur={isRef ? () => tipCtx?.onClose() : undefined}
         onClick={isRef && onClickRef ? () => onClickRef((node as ReferenceNode).reference) : undefined}
         role={isRef ? 'button' : undefined}
         tabIndex={isRef ? 0 : undefined}
@@ -303,12 +350,13 @@ function OutlineNode({
 
   // ── Collapse/expand state for this row ──
   const collapseCtx = useContext(CollapseContext);
+  const tipCtx = useContext(RefTooltipContext);
   const collapsed = collapseCtx?.collapsedIds.has(node.id) ?? false;
   const canCollapse =
     node instanceof FunctionNode
       ? node.args.length > 0
       : node instanceof OperatorNode
-        ? !isAllLeafSubtree(node)
+        ? !isCompactSubtree(node)
         : node instanceof ParentheticalNode;
 
   const collapseBtn = canCollapse && collapseCtx ? (
@@ -384,8 +432,17 @@ function OutlineNode({
       <li role="treeitem" aria-selected="false" className={liCls}>
         <button
           type="button"
-          onMouseEnter={() => onHover(node.id)}
-          onMouseLeave={() => onHover(null)}
+          data-ref={node instanceof ReferenceNode ? node.reference : undefined}
+          onMouseEnter={(e) => {
+            onHover(node.id);
+            if (node instanceof ReferenceNode) tipCtx?.onOpen(node.reference, e.currentTarget);
+          }}
+          onMouseLeave={() => {
+            onHover(null);
+            if (node instanceof ReferenceNode) tipCtx?.onClose();
+          }}
+          onFocus={node instanceof ReferenceNode ? (e) => tipCtx?.onOpen(node.reference, e.currentTarget) : undefined}
+          onBlur={node instanceof ReferenceNode ? () => tipCtx?.onClose() : undefined}
           onClick={handleClick}
           className={`${rowCls} text-left`}
           aria-label={ariaLabel}
@@ -404,7 +461,7 @@ function OutlineNode({
     const word = operatorWord(op.operator);
     const ariaLabel = `operator: ${op.operator}, step ${stepNumber ?? ""}`;
 
-    if (isAllLeafSubtree(op)) {
+    if (isCompactSubtree(op)) {
       return (
         <li role="treeitem" aria-selected="false" className={liCls} aria-label={ariaLabel}>
           <div
@@ -435,7 +492,7 @@ function OutlineNode({
         </div>
         <CollapsibleChildren collapsed={collapsed}>
           {op.getChildren().map((child) =>
-            isAllLeafSubtree(child) ? (
+            isCompactSubtree(child) ? (
               <li key={child.id} role="treeitem" aria-selected="false" className="tree-row">
                 <div className="tree-tick inline-flex max-w-full flex-wrap items-center gap-1.5 px-2 py-1">
                   <CompactSubtree node={child} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
@@ -482,7 +539,7 @@ function OutlineNode({
           <CollapsibleChildren collapsed={collapsed}>
             {fn.args.map((arg, i) => {
               const label = getArgName(fn.name, i, fn.args.length);
-              return isAllLeafSubtree(arg) ? (
+              return isCompactSubtree(arg) ? (
                 <li key={arg.id} role="treeitem" aria-selected="false" className="tree-row">
                   <div className="tree-tick inline-flex max-w-full flex-wrap items-center gap-2 px-2 py-1">
                     <span className="shrink-0 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted/80">
@@ -572,6 +629,8 @@ export default function FormulaOutline({
   }, [ast]);
 
   const toggleCollapse = (id: string) => {
+    // Collapsing re-flows the tree; dismiss any open reference tooltip.
+    closeRefTip();
     setCollapsedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -582,6 +641,60 @@ export default function FormulaOutline({
       return next;
     });
   };
+
+  // ── Bulk expand/collapse ──
+  // Ids of every row that carries a collapse toggle (memoized per AST).
+  const collapsibleIds = useMemo(() => collectCollapsibleIds(ast), [ast]);
+  const allCollapsed = collapsibleIds.length > 0 && collapsibleIds.every((id) => collapsedIds.has(id));
+
+  const expandAll = () => {
+    closeDoc();
+    closeRefTip();
+    setCollapsedIds(new Set());
+  };
+  const collapseAll = () => {
+    closeDoc();
+    closeRefTip();
+    setCollapsedIds(new Set(collapsibleIds));
+  };
+
+  // ── Reference-detail tooltip state (hover/focus intent on reference pills) ──
+  const [refTip, setRefTip] = useState<{ ref: string; left: number; top: number; bottom: number } | null>(null);
+  const refTipRef = useRef<HTMLDivElement>(null);
+  const refTipTimer = useRef<number | null>(null);
+  const refTipAnchor = useRef<HTMLElement | null>(null);
+
+  const clearRefTipTimer = () => {
+    if (refTipTimer.current !== null) {
+      window.clearTimeout(refTipTimer.current);
+      refTipTimer.current = null;
+    }
+  };
+  const closeRefTip = () => {
+    clearRefTipTimer();
+    refTipAnchor.current?.removeAttribute('aria-describedby');
+    refTipAnchor.current = null;
+    setRefTip(null);
+  };
+  const onOpenRefTip = (ref: string, el: HTMLElement) => {
+    clearRefTipTimer();
+    // Short intent delay so a quick pass-over doesn't flash the tooltip.
+    refTipTimer.current = window.setTimeout(() => {
+      refTipAnchor.current?.removeAttribute('aria-describedby');
+      refTipAnchor.current = el;
+      el.setAttribute('aria-describedby', 'ref-tooltip');
+      const r = el.getBoundingClientRect();
+      setRefTip({ ref, left: r.left, top: r.top, bottom: r.bottom });
+    }, 200);
+  };
+
+  // Clear pending tooltip timers on unmount (post-teardown setState guard).
+  useEffect(() => {
+    return () => clearRefTipTimer();
+  }, []);
+
+  // ── Connection lines between occurrences of the selected reference ──
+  const [refLines, setRefLines] = useState<string[]>([]);
 
   // ── Function-help popover state (tap-first; hover opens on machines with a pointer) ──
   const [docPop, setDocPop] = useState<{ name: string; left: number; top: number; bottom: number; pinned: boolean } | null>(null);
@@ -686,8 +799,68 @@ export default function FormulaOutline({
     };
   }, [docPop]);
 
+  // Position the reference tooltip below its pill, flipping above on overflow.
+  useLayoutEffect(() => {
+    if (!refTip) return;
+    const tip = refTipRef.current;
+    if (!tip) return;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const w = Math.min(224, vw - 16);
+    tip.style.width = `${w}px`;
+    const h = tip.offsetHeight || 96;
+    const x = Math.min(Math.max(refTip.left, 8), vw - w - 8);
+    const flipUp = refTip.bottom + h + 8 > vh - 8;
+    tip.style.left = `${x}px`;
+    tip.style.top = `${flipUp ? Math.max(8, refTip.top - h - 8) : refTip.bottom + 8}px`;
+  }, [refTip]);
+
+  // Close the reference tooltip on Escape.
+  useEffect(() => {
+    if (!refTip) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeRefTip();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [refTip]);
+
+  // Measure connector paths between occurrences of the selected reference.
+  // Offsets are transform-free, so lines track the tree at every zoom level.
+  useLayoutEffect(() => {
+    if (!selectedReference) {
+      setRefLines([]);
+      return;
+    }
+    const root = contentRef.current;
+    if (!root) return;
+    const els = Array.from(root.querySelectorAll<HTMLElement>('[data-ref]')).filter(
+      (el) => el.dataset.ref === selectedReference && !el.closest('[inert]')
+    );
+    const pts = els.map((el) => {
+      let left = 0;
+      let top = 0;
+      let cur: HTMLElement | null = el;
+      while (cur && cur !== root) {
+        left += cur.offsetLeft;
+        top += cur.offsetTop;
+        cur = cur.offsetParent as HTMLElement | null;
+      }
+      return { x: left + el.offsetWidth / 2, top, bottom: top + el.offsetHeight };
+    });
+    const lines: string[] = [];
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const a = pts[i];
+      const b = pts[i + 1];
+      const dy = Math.max(24, (b.top - a.bottom) / 2);
+      lines.push(`M ${a.x} ${a.bottom} C ${a.x} ${a.bottom + dy} ${b.x} ${b.top - dy} ${b.x} ${b.top}`);
+    }
+    setRefLines(lines);
+  }, [selectedReference, ast, collapsedIds, contentSize]);
+
   const docCtx = { openName: docPop?.name ?? null, onOpen: onOpenFn, onClose: onCloseFn };
   const collapseCtx = { collapsedIds, onToggle: toggleCollapse };
+  const refTipCtx = { openRef: refTip?.ref ?? null, onOpen: onOpenRefTip, onClose: closeRefTip };
 
   // Measure the tree's natural (unscaled) size. Transforms never change
   // layout, so offsetWidth/Height stay stable across zoom levels.
@@ -704,12 +877,14 @@ export default function FormulaOutline({
 
   const zoomBy = (delta: number) => {
     closeDoc();
+    closeRefTip();
     setZoom((z) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round((z + delta) * 100) / 100)));
   };
 
   // Scale so the whole tree width fits the visible panel (snapped to 5%).
   const fitToPanel = () => {
     closeDoc();
+    closeRefTip();
     const viewport = viewportRef.current;
     if (!viewport || contentSize.width === 0) return; // no layout metrics available
     const available = viewport.clientWidth - 32; // p-4 horizontal padding
@@ -760,7 +935,29 @@ export default function FormulaOutline({
       {/* Toolbar: slim worksheet-style header with the legend docked on the
           right, like a mini ribbon above the canvas. */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-2.5">
-        <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Formula structure</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">Formula structure</span>
+          {collapsibleIds.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={expandAll}
+                disabled={collapsedIds.size === 0}
+                className={zoomBtnCls}
+              >
+                Expand all
+              </button>
+              <button
+                type="button"
+                onClick={collapseAll}
+                disabled={allCollapsed}
+                className={zoomBtnCls}
+              >
+                Collapse all
+              </button>
+            </>
+          )}
+        </div>
         <div className="flex flex-wrap gap-2 text-xs" aria-label="Color legend">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-medium text-ink-muted">
             <span className="h-2 w-2 rounded-full bg-sky-500" aria-hidden="true"></span> Function
@@ -780,11 +977,30 @@ export default function FormulaOutline({
       {/* Canvas viewport. The tree renders at natural size in a w-max
           wrapper and is visually scaled with transform; an explicit-size
           spacer keeps the scrollbars honest (transforms don't affect layout). */}
-      <div ref={viewportRef} className="overflow-auto p-4" onScroll={closeDoc}>
+      <div ref={viewportRef} className="overflow-auto p-4" onScroll={() => { closeDoc(); closeRefTip(); }}>
         <div style={contentSize.width > 0 ? { width: contentSize.width * zoom, height: contentSize.height * zoom } : undefined}>
           <div ref={contentRef} className="w-max" style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}>
+            {refLines.length > 0 && (
+              <svg
+                data-testid="ref-connection-lines"
+                className="pointer-events-none absolute left-0 top-0 -z-10 overflow-visible text-accent"
+                width={contentSize.width || 1}
+                height={contentSize.height || 1}
+                aria-hidden="true"
+              >
+                <defs>
+                  <marker id="ref-line-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                    <path d="M 0 0.5 L 8 4 L 0 7.5 z" fill="currentColor" />
+                  </marker>
+                </defs>
+                {refLines.map((d, i) => (
+                  <path key={i} d={d} fill="none" stroke="currentColor" strokeWidth={1.5} opacity={0.55} markerEnd="url(#ref-line-arrow)" />
+                ))}
+              </svg>
+            )}
             <FunctionDocContext.Provider value={docCtx}>
             <CollapseContext.Provider value={collapseCtx}>
+            <RefTooltipContext.Provider value={refTipCtx}>
             <ul role="tree" aria-label="Formula structure tree" className="min-w-max">
               <OutlineNode
                 node={ast}
@@ -799,6 +1015,7 @@ export default function FormulaOutline({
                 onClickRef={handleClickRef}
               />
             </ul>
+            </RefTooltipContext.Provider>
             </CollapseContext.Provider>
             </FunctionDocContext.Provider>
           </div>
@@ -881,6 +1098,50 @@ export default function FormulaOutline({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
                 </svg>
               </a>
+            </div>
+          );
+        })()}
+
+      {refTip &&
+        (() => {
+          const info = describeReference(refTip.ref);
+          const occurrences = countReferenceOccurrences(ast, refTip.ref);
+          const kindLabel = info.kind === 'range' ? 'Range' : 'Cell';
+          const addressingLabel = info.addressing.charAt(0).toUpperCase() + info.addressing.slice(1);
+          return (
+            <div
+              id="ref-tooltip"
+              ref={refTipRef}
+              role="tooltip"
+              className="ref-tip pointer-events-none fixed z-50 rounded-lg border border-border bg-surface-elevated p-3 shadow-xl"
+            >
+              <p className="font-mono text-sm font-bold text-violet-800">{refTip.ref}</p>
+              <dl className="mt-1.5 space-y-1 text-[11px] leading-snug">
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-ink-muted">Type</dt>
+                  <dd className="font-medium text-ink">
+                    {kindLabel}
+                    {info.kind === 'range' ? ` · ${info.summary}` : ''}
+                  </dd>
+                </div>
+                {info.sheet && (
+                  <div className="flex items-baseline justify-between gap-3">
+                    <dt className="text-ink-muted">Sheet</dt>
+                    <dd className="font-medium text-ink">
+                      {info.sheet}
+                      {info.endSheet ? ` → ${info.endSheet}` : ''}
+                    </dd>
+                  </div>
+                )}
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-ink-muted">Addressing</dt>
+                  <dd className="font-medium text-ink">{addressingLabel}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-ink-muted">Used</dt>
+                  <dd className="font-medium text-ink">{occurrences}× in this formula</dd>
+                </div>
+              </dl>
             </div>
           );
         })()}

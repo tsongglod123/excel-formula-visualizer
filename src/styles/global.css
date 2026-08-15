@@ -117,6 +117,11 @@
   animation: doc-popover-in 150ms ease-out both;
   transform-origin: top center;
 }
+/* Reference-detail tooltip entrance (shares the popover-in keyframes). */
+.ref-tip {
+  animation: doc-popover-in 150ms ease-out both;
+  transform-origin: top center;
+}
 @keyframes doc-popover-in {
   from {
     opacity: 0;

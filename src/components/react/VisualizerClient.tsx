@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ASTNode, ASTTraverser } from '../../lib/ast';
 import type { NodeTranslation } from '../../lib/translate';
+import { recordFormula } from '../../lib/formulaHistory';
 import { useEvaluation } from './hooks/useEvaluation';
 import FormulaOutline from './FormulaOutline';
 import ExplanationPanel from './ExplanationPanel';
@@ -12,9 +13,10 @@ interface VisualizerClientProps {
   ast: ASTNode;
   translation: string;
   nodeTranslations: NodeTranslation;
+  formula: string;
 }
 
-export default function VisualizerClient({ ast: rawAst, translation, nodeTranslations }: VisualizerClientProps) {
+export default function VisualizerClient({ ast: rawAst, translation, nodeTranslations, formula }: VisualizerClientProps) {
   // The AST crosses the Astro island boundary as a serialized plain object
   // (methods/getters are stripped). Revive it into proper class instances so
   // the polymorphic getChildren()/getLabel()/instanceof logic works. On the
@@ -26,6 +28,13 @@ export default function VisualizerClient({ ast: rawAst, translation, nodeTransla
 
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
   const [selectedReference, setSelectedReference] = useState<string | null>(null);
+
+  // Persist successful visualizations to the local recent-formulas history.
+  // Client-only nicety: guarded so SSR is a no-op.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.localStorage) return;
+    recordFormula(window.localStorage, formula);
+  }, [formula]);
 
   const {
     evalOrder,

@@ -47,6 +47,10 @@
 - Official Microsoft argument names displayed for each function argument (`functionArgs.ts`)
 - Function-help popover — tap or hover any function name to see a short plain-English summary, syntax, returns, and a link to the official Microsoft support page (`https://support.microsoft.com/en-us/excel/functions/{func-name}-function`, `functionDocs.ts`, ~200 functions, full-coverage tested)
 - Collapsible groups — a chevron toggle on every row that renders a child list; hidden subtrees leave the tab order via `inert` + `aria-hidden` and animate shut with a CSS grid-rows transition, with a “N hidden” count chip
+- Expand all / Collapse all toolbar buttons — one-click bulk control for every collapsible row (auto-hidden when nothing is collapsible)
+- Compact-by-default outline — simple calls and flat operator fragments render as inline pills; only function-in-function nesting breaks out into structural rows
+- Reference connection lines — selecting a reference draws accent-colored bezier connectors between every occurrence pill (SVG overlay inside the zoom canvas, transform-free offset math, tracks collapse/zoom, skips inert-collapsed subtrees)
+- Reference tooltips — hover/focus intent (~200ms) on any reference shows a tooltip with kind, dimensions (e.g. “10 rows × 1 column”), sheet, absolute/relative/mixed addressing, and occurrence count (`describeReference` in `src/lib/referenceInfo.ts`)
 
 ### Pages & UI ✅
 - Landing page (`/`) — hero with formula input, feature cards, example, stats
@@ -57,6 +61,7 @@
 - Responsive navbar with mobile menu
 - Footer with links
 - Copy URL / share button
+- Recent formulas — localStorage-backed history of visualized formulas (`src/lib/formulaHistory.ts`), rendered as clickable chips on the landing hero and the visualize editor (`src/components/react/RecentFormulas.tsx`)
 - Skip-to-content link for accessibility
 - View transitions via `<ClientRouter />`
 
@@ -64,7 +69,7 @@
 - Astro 7 + React 19 + Tailwind CSS 4
 - Netlify adapter with on-demand rendering for `/visualize`
 - TypeScript strict mode
-- Vitest test setup (188 tests passing) with jsdom + Testing Library for component tests
+- Vitest test setup (226 tests passing) with jsdom + Testing Library for component tests
 - Fonts: Bricolage Grotesque (body), Spline Sans Mono (code)
 
 ---
@@ -78,8 +83,6 @@ _None active — the previous in-progress item (collapsible groups) shipped in t
 ## What's Left to Build
 
 ### High Priority (Visualization Polish)
-- [ ] Visual connection lines between related cell references
-- [ ] Tooltip with reference details (range info, value if available)
 - [ ] Minimap for very large formula trees
 - [ ] Zoom and pan for complex nested formulas
 
@@ -98,7 +101,6 @@ _None active — the previous in-progress item (collapsible groups) shipped in t
 - [ ] Localization support (multiple languages)
 
 ### UX & Features
-- [ ] Formula history / recent formulas
 - [ ] Keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
 - [ ] Export visualization as image
 - [ ] Embed/share via iframe
@@ -122,7 +124,7 @@ _None active — the previous in-progress item (collapsible groups) shipped in t
 
 ## Known Issues
 
-_No critical known issues at this time. All 191 tests are passing._
+_No critical known issues at this time. All 226 tests are passing._
 
 ---
 
@@ -144,10 +146,10 @@ _No critical known issues at this time. All 191 tests are passing._
 
 ### Phase 3: Polish & Enhancement (Current)
 - Collapsible groups for large formulas (complete — toggles on every structural row, inert-hidden subtrees)
-- Visual connection lines between references
-- Tooltips and reference details
+- Visual connection lines between references (complete)
+- Tooltips and reference details (complete)
 - Keyboard shortcuts
-- Formula history
+- Formula history (complete)
 
 ### Phase 4: Advanced Features (Planned)
 - Array constants, structured references, named ranges
@@ -173,9 +175,12 @@ _No critical known issues at this time. All 191 tests are passing._
 | Translator (`translate.test.ts`) | 67 | Arithmetic, references, ranges, comparisons, functions, logical, lookup, text, date, complex formulas, parentheticals, generic fallback |
 | ASTTraverser (`ASTTraverser.test.ts`) | 21 | findNode, getSubtreeIds, getParentMap, getNodeIndex, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST round-trip |
 | functionDocs (`functionDocs.test.ts`) | 10 | Full-coverage invariant: every `FUNCTION_ARG_NAMES` entry has a summary + docs, syntax generation incl. optional `[]` and variadic `…` |
-| VisualizerClient (`VisualizerClient.test.tsx`) | 3 | Plain-object AST island regression, class-instance AST, playback controls |
-| FormulaOutline (`FormulaOutline.test.tsx`) | 20 | Legend, step numbers, hover callbacks, reference selection, subtree dimming, current-step ring, Excel active-cell selection, zoom controls |
+| referenceInfo (`referenceInfo.test.ts`) | 10 | describeReference: cells, anchoring, ranges, reversed ranges, columns/rows, sheets, 3D refs + countReferenceOccurrences |
+| formulaHistory (`formulaHistory.test.ts`) | 6 | load/record/dedupe/cap/clear/corrupt-storage handling |
+| VisualizerClient (`VisualizerClient.test.tsx`) | 5 | Plain-object AST island regression, class-instance AST, playback controls, history recording, connection lines |
+| RecentFormulas (`RecentFormulas.test.tsx`) | 4 | Empty state, chip links, clear button, corrupt storage |
+| FormulaOutline (`FormulaOutline.test.tsx`) | 33 | Legend, step numbers, hover callbacks, reference selection, subtree dimming, current-step ring, Excel active-cell selection, zoom controls, collapsible groups, reference tooltips, connection lines |
 | EvaluatorBar (`EvaluatorBar.test.tsx`) | 7 | Step display, playback callbacks, disabled states at bounds, formula rendering, current-node highlight |
 | ExplanationPanel (`ExplanationPanel.test.tsx`) | 3 | Full translation, copy button, scrollable container |
 | useEvaluation (`useEvaluation.test.ts`) | 6 | Initial state, step bounds, reset, node-id mapping, auto-advance with fake timers |
-| **Total** | **191** | **All passing** |
+| **Total** | **226** | **All passing** |

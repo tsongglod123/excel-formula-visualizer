@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import FormulaEditor from '../components/astro/FormulaEditor.astro';
 import CopyUrlButton from '../components/astro/CopyUrlButton.astro';
 import VisualizerClient from '../components/react/VisualizerClient';
+import RecentFormulas from '../components/react/RecentFormulas';
 import { parse, FormulaError, type ASTNode } from '../lib/parser';
 import { translate, translateNode, type NodeTranslation } from '../lib/translate';
 
@@ -74,6 +75,7 @@ if (!formula) {
           </div>
           <CopyUrlButton />
         </div>
+        <RecentFormulas client:load />
       </section>
 
       {ast && nodeTranslations && (
@@ -82,6 +84,7 @@ if (!formula) {
           ast={ast}
           translation={translation}
           nodeTranslations={nodeTranslations}
+          formula={formula ?? ''}
         />
       )}
     </div>

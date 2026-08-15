@@ -1,5 +1,6 @@
 ---
 import FormulaEditor from './FormulaEditor.astro';
+import RecentFormulas from '../react/RecentFormulas';
 
 export interface Props {
   title: string;
@@ -29,6 +30,7 @@ const { title, highlightedText, description, showInput = true } = Astro.props;
           <code class="rounded bg-border/50 px-1.5 py-0.5 text-xs font-mono text-ink-muted">=SUM(A1:A10)</code>,{' '}
           <code class="rounded bg-border/50 px-1.5 py-0.5 text-xs font-mono text-ink-muted">=IF(B2>100, "High", "Low")</code>
         </p>
+        <RecentFormulas client:load />
       </div>
     )
   }
