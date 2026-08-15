@@ -2,9 +2,20 @@
 
 ## Current Focus
 
-The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 121 passing tests. Current focus is on **visualization polish** and **UX enhancements**.
+The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 188 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups just shipped; next up is visual connection lines between related references.
 
 ## Recent Changes
+
+### Completed: Contributor Skills + CONTRIBUTING.md
+
+- **New skills installed** — `write-coding-standards-from-file` (project-local, from `github/awesome-copilot`, tracked in `skills-lock.json`) plus three global process skills from `mattpocock/skills`: `code-review` (two-axis standards+spec review), `diagnosing-bugs` (red-loop debug discipline), and `codebase-design` (deep-module vocabulary). These were deliberately scoped: the framework skills stay project-local, the process skills are global since they're repo-agnostic.
+- **`CONTRIBUTING.md` generated** (new at repo root) using the `write-coding-standards-from-file` skill against the `src/` tree — documents conventions observed in the actual code (2-space indent, semicolons, single quotes, `interface Props` + `Astro.props` destructuring, `'use client'` React islands with serializable props, Tailwind v4 `@theme` tokens, light-only theme, Vitest/`describe`+`it` style, Conventional Commits scope style). It complements rather than replaces `.clinerules/coding-conventions.md` (agent-facing) and the README; keep the three in sync when conventions change.
+
+### Completed: Collapsible Groups in the Formula Outline
+
+- **Collapse/expand toggles** in `FormulaOutline` — every row that renders a child list (functions with args, non-leaf operators, parentheticals) gets a chevron button. State lives in `FormulaOutline` as a `Set<string>` shared through a new `CollapseContext` (mirrors the existing `FunctionDocContext` pattern) so recursive `OutlineNode`s need no prop drilling, and it resets when a new AST mounts (view-transition navigation between share links).
+- **Animation + accessibility** — child lists render via a `CollapsibleChildren` wrapper: CSS `grid-template-rows` 1fr→0fr transition (no measurement needed), `inert` + `aria-hidden` when collapsed so hidden rows leave the tab order and the a11y tree, `aria-expanded` on the toggle, a rotating chevron, and a “N hidden” count chip while collapsed.
+- **Tests** — new `collapsible groups` describe block in `FormulaOutline.test.tsx`: toggle present + expanded by default, collapse hides child rows / marks the wrapper inert / shows the count chip, collapsing one row leaves ancestors untouched, expand restores rows, zero-child rows get no toggle, and collapse state resets on a new AST. 182 → 188 tests.
 
 ### Completed: Fixed ARIA Audit Warning on the Tree (aria-selected)
 
@@ -87,20 +98,19 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## In Progress
 
-- [ ] **Collapsible groups** in `FormulaOutline` — Expand/collapse functions and parenthetical expressions for large formulas
+_None active — collapsible groups shipped. See Next Steps for the queued work._
 
 ## Next Steps (Priority Order)
 
-1. Implement collapsible groups in `FormulaOutline` component
-2. Add visual connection lines between related cell references in the reference map
-3. Add tooltips with reference details (range info, value if available)
-4. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
-5. Add formula history / recent formulas feature
-6. Add end-to-end tests with Playwright (real browser, island hydration)
+1. Add visual connection lines between related cell references in the reference map
+2. Add tooltips with reference details (range info, value if available)
+3. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
+4. Add formula history / recent formulas feature
+5. Add end-to-end tests with Playwright (real browser, island hydration)
 
 ## Active Decisions & Considerations
 
-- **Collapsible groups approach**: Should use React state (`useState` for expanded/collapsed tracking) with smooth CSS transitions. Consider whether to persist collapse state across re-renders.
+- **Collapsible groups (resolved)**: React `useState` in `FormulaOutline` (`Set<string>`), CSS grid-rows transition for height, `inert` + `aria-hidden` on hidden subtrees. State intentionally not persisted; resets on new AST.
 - **Reference connection lines**: Needs careful implementation — SVG overlay or canvas-based approach. Must work with responsive layout (site is light-only; no dark mode).
 - **Tooltip positioning**: Use floating UI or Popper.js for smart positioning that avoids viewport edge clipping.
 - **Keyboard shortcuts**: Need to scope shortcuts to the evaluator component only (not global) to avoid conflicts with browser defaults.

@@ -41,6 +41,7 @@
 - Step-by-step evaluation — numbers nodes in evaluation order (innermost to outermost)
 - Official Microsoft argument names displayed for each function argument (`functionArgs.ts`)
 - Function-help popover — tap or hover any function name to see a short plain-English summary, syntax, returns, and a link to the official Microsoft support page (`https://support.microsoft.com/en-us/excel/functions/{func-name}-function`, `functionDocs.ts`, ~200 functions, full-coverage tested)
+- Collapsible groups — a chevron toggle on every row that renders a child list; hidden subtrees leave the tab order via `inert` + `aria-hidden` and animate shut with a CSS grid-rows transition, with a “N hidden” count chip
 
 ### Pages & UI ✅
 - Landing page (`/`) — hero with formula input, feature cards, example, stats
@@ -58,21 +59,20 @@
 - Astro 7 + React 19 + Tailwind CSS 4
 - Netlify adapter with on-demand rendering for `/visualize`
 - TypeScript strict mode
-- Vitest test setup (182 tests passing) with jsdom + Testing Library for component tests
+- Vitest test setup (188 tests passing) with jsdom + Testing Library for component tests
 - Fonts: Bricolage Grotesque (body), Spline Sans Mono (code)
 
 ---
 
 ## In Progress
 
-- [ ] **Collapsible groups** in `FormulaOutline` — Expand/collapse functions and parenthetical expressions for large formulas
+_None active — the previous in-progress item (collapsible groups) shipped in this round. See "What's Left to Build" for the backlog._
 
 ---
 
 ## What's Left to Build
 
 ### High Priority (Visualization Polish)
-- [ ] Collapsible/expandable groups for large formulas (currently in progress)
 - [ ] Visual connection lines between related cell references
 - [ ] Tooltip with reference details (range info, value if available)
 - [ ] Minimap for very large formula trees
@@ -108,7 +108,7 @@
 - [ ] Visual regression testing
 
 ### Documentation
-- [ ] Contributing guide (`CONTRIBUTING.md`)
+- [x] Contributing guide (`CONTRIBUTING.md`) — generated with the `write-coding-standards-from-file` skill from `src/` conventions
 - [ ] Architecture decision records
 - [ ] API documentation for parser and translator
 - [ ] Deployment guide
@@ -117,7 +117,7 @@
 
 ## Known Issues
 
-_No critical known issues at this time. All 182 tests are passing._
+_No critical known issues at this time. All 188 tests are passing._
 
 ---
 
@@ -138,7 +138,7 @@ _No critical known issues at this time. All 182 tests are passing._
 - Server-render visualize page with on-demand rendering
 
 ### Phase 3: Polish & Enhancement (Current)
-- Collapsible groups for large formulas (in progress)
+- Collapsible groups for large formulas (complete — toggles on every structural row, inert-hidden subtrees)
 - Visual connection lines between references
 - Tooltips and reference details
 - Keyboard shortcuts
@@ -167,9 +167,10 @@ _No critical known issues at this time. All 182 tests are passing._
 | Parser (`parser.test.ts`) | 54 | Operator precedence, functions, nested, references, ranges, comparisons, concatenation, percent, unary minus, booleans, numbers, strings, errors, complex formulas |
 | Translator (`translate.test.ts`) | 67 | Arithmetic, references, ranges, comparisons, functions, logical, lookup, text, date, complex formulas, parentheticals, generic fallback |
 | ASTTraverser (`ASTTraverser.test.ts`) | 18 | findNode, getSubtreeIds, getParentMap, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST round-trip |
+| functionDocs (`functionDocs.test.ts`) | 10 | Full-coverage invariant: every `FUNCTION_ARG_NAMES` entry has a summary + docs, syntax generation incl. optional `[]` and variadic `…` |
 | VisualizerClient (`VisualizerClient.test.tsx`) | 3 | Plain-object AST island regression, class-instance AST, playback controls |
-| FormulaOutline (`FormulaOutline.test.tsx`) | 9 | Legend, step numbers, hover callbacks, reference selection, subtree dimming, current-step ring, Excel active-cell selection, zoom controls |
+| FormulaOutline (`FormulaOutline.test.tsx`) | 20 | Legend, step numbers, hover callbacks, reference selection, subtree dimming, current-step ring, Excel active-cell selection, zoom controls |
 | EvaluatorBar (`EvaluatorBar.test.tsx`) | 7 | Step display, playback callbacks, disabled states at bounds, formula rendering, current-node highlight |
 | ExplanationPanel (`ExplanationPanel.test.tsx`) | 3 | Full translation, copy button, scrollable container |
 | useEvaluation (`useEvaluation.test.ts`) | 6 | Initial state, step bounds, reset, node-id mapping, auto-advance with fake timers |
-| **Total** | **167** | **All passing** |
+| **Total** | **188** | **All passing** |
