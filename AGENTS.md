@@ -25,6 +25,13 @@ Invoke a skill or MCP tool when the situation matches its trigger. Skills are lo
 - `frontend-design`, `web-design-guidelines`, `commit-message-storyteller` — distinctive UI direction, web-interface guideline compliance, narrative Conventional Commit messages.
 - `documentation-writer`, `microsoft-docs`, `find-skills` — technical writing, Microsoft docs lookup, skill discovery.
 
+### Workflow skills (project-scoped, in `.cline/skills/`)
+- `add-feature` — when adding features/pages/components; read the memory bank → plan → research → implement → test → update memory bank.
+- `commit-and-push` — when asked to commit/push/save changes; narrative Conventional Commit message and verify the push.
+- `test-and-fix` — when fixing bugs, failing tests, or QA'ing a change; run tests/typechecks, diagnose root cause, fix, re-verify.
+- `update-memory-bank` — when asked to update the memory bank or after significant changes; review and update all `memory-bank/` files.
+- `optimize-token-usage` — when performing any work in the codebase; minimize context/token spend via batched reads, targeted searches, bounded output, and minimal edits.
+
 ### MCP tools
 - `sequential-thinking` — for analysis that benefits from step-by-step reasoning (used by the commit-and-push workflow to classify a diff).
 - `astro-docs` search / `microsoft-docs` search+fetch — official framework / reference lookups.

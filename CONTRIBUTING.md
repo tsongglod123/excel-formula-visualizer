@@ -1,6 +1,6 @@
 # Contributing to Excel Formula Visualizer
 
-Thanks for your interest in contributing! This guide captures the conventions observed across the codebase so contributions land smoothly. It is the contributor-facing companion to the operating rules in `.clinerules/` and the project knowledge in `memory-bank/`.
+Thanks for your interest in contributing! This guide captures the conventions observed across the codebase so contributions land smoothly. It is the contributor-facing companion to the operating rules in `.cline/rules/` and the project knowledge in `memory-bank/`.
 
 > **For AI-assisted contributors:** the project ships agent skills and MCP references that keep code consistent — see [`AGENTS.md` → Skills & MCP References](./AGENTS.md) for the trigger map (`codebase-design`, `code-review`, `diagnosing-bugs`, `write-coding-standards-from-file`, and the Astro/React framework skills).
 

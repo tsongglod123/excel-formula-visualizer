@@ -1,13 +1,13 @@
+---
+name: update-memory-bank
+description: Review and update all memory-bank files to reflect the current project state. Use when the user asks to update the memory bank or after significant changes.
+---
+
 # Workflow: Update Memory Bank
 
 ## Purpose
 
-Review and update all memory bank files to reflect the current state of the project. This workflow ensures Cline's documentation stays accurate and complete across sessions.
-
-## Skills & MCP Tools
-
-- **Skill:** `documentation-writer` — Use to apply Diátaxis documentation principles for high-quality, well-structured documentation
-- **MCP:** `sequential-thinking` — Use to analyze what changed and determine which memory bank files need updates
+Review and update all memory bank files (`memory-bank/`) to reflect the current state of the project. This keeps Cline's documentation accurate and complete across sessions.
 
 ## Steps
 
@@ -40,24 +40,17 @@ Review and update all memory bank files to reflect the current state of the proj
    - Note the evolution of project decisions
 
 5. **Update `systemPatterns.md` (if needed)**
-   - Update if architecture changed
-   - Update if new design patterns were introduced
-   - Update if component relationships changed
-   - Update if critical implementation paths changed
+   - Update if architecture or design patterns changed
+   - Update if component relationships or critical implementation paths changed
 
 6. **Update `techContext.md` (if needed)**
-   - Update if dependencies were added or removed
-   - Update if development setup changed
-   - Update if technical constraints changed
-   - Update if tool usage patterns changed
+   - Update if dependencies, development setup, technical constraints, or tool usage changed
 
 7. **Update `productContext.md` (if needed)**
-   - Update if the problem the project solves changed
-   - Update if user experience goals changed
+   - Update if the problem the project solves or user experience goals changed
 
 8. **Update `projectbrief.md` (if needed)**
-   - Update if core requirements or scope changed
-   - Update if success metrics changed
+   - Update if core requirements, scope, or success metrics changed
 
 9. **Verify consistency**
    - Use `documentation-writer` skill to review structure and clarity

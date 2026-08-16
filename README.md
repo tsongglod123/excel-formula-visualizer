@@ -42,7 +42,8 @@ Three independent layers, tested independently. The AST is the shared data contr
 
 | What | Where | For |
 |---|---|---|
-| **Project rules & conventions** | `.clinerules/` | Agent operating instructions |
+| **Project rules & conventions** | `.cline/rules/` | Agent operating instructions |
+| **Project-scoped skills** | `.cline/skills/` | Workflow skills (add-feature, commit-and-push, …) |
 | **Architecture, tech stack, progress** | `memory-bank/` | In-depth project knowledge |
 | **Contributing guide** | [`CONTRIBUTING.md`](./CONTRIBUTING.md) | Code style, testing, commit conventions for contributors |
 | **Agent skills & MCP map** | `AGENTS.md` | When to trigger each skill/MCP tool |
@@ -52,7 +53,9 @@ Three independent layers, tested independently. The AST is the shared data contr
 
 ```text
 /
-├── .clinerules/             # Operating rules (coding conventions, development)
+├── .cline/                  # Project rules + project-scoped skills
+│   ├── rules/               # Operating rules (coding conventions, development, …)
+│   └── skills/              # Workflow skills (add-feature, commit-and-push, …)
 ├── memory-bank/             # In-depth project knowledge (architecture, progress, tech)
 ├── public/                  # Static assets
 ├── src/

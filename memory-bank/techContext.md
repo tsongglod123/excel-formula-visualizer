@@ -180,12 +180,10 @@ Agent skills live in `.agents/skills/` (project-local, tracked via `skills-lock.
 ├── package-lock.json
 ├── tsconfig.json
 ├── vitest.config.mts
-├── .clinerules/              # Project rules and conventions
-│   ├── coding-conventions.md
-│   ├── development.md
-│   ├── memory-bank.md
-│   ├── project-context.md
-│   └── workflows/
+├── .cline/                    # Project rules + project-scoped skills
+│   ├── rules/                 # Operating rules (coding-conventions, development, …)
+│   │   └── (coding-conventions, development, memory-bank, project-context, astro-components, react-components, testing)
+│   └── skills/                # Workflow skills (add-feature, commit-and-push, test-and-fix, update-memory-bank)
 ├── memory-bank/              # Cline's memory bank (this directory)
 │   ├── projectbrief.md
 │   ├── productContext.md

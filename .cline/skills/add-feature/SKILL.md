@@ -1,3 +1,8 @@
+---
+name: add-feature
+description: Add a new feature to this project following its conventions — read the memory bank, plan, implement, test, and document. Use when adding features, pages, or components.
+---
+
 # Workflow: Add Feature
 
 ## Purpose
@@ -31,7 +36,7 @@ Add a new feature to the project following established conventions. This workflo
 
 3. **Plan the implementation**
    - Determine which files need to be created or modified
-   - Follow `.clinerules/coding-conventions.md` for component architecture
+   - Follow `.cline/rules/coding-conventions.md` for component architecture
    - Use `create-component` skill for new Astro components
    - Use `frontend-design` skill for UI components and pages
    - Use `vercel-react-best-practices` skill for React components
@@ -42,7 +47,7 @@ Add a new feature to the project following established conventions. This workflo
    - Verify edge cases and error handling
 
 5. **Implement the feature**
-   - Create/modify source files following project conventions
+   - Create/modify source files following `.cline/rules/` conventions
    - Add TypeScript interfaces for props and data structures
    - Use Tailwind CSS utility classes for styling
    - Follow accessibility guidelines (semantic HTML, ARIA, keyboard navigation)
@@ -59,10 +64,7 @@ Add a new feature to the project following established conventions. This workflo
    - Use `astro-best-practices` skill to review for performance/accessibility issues
 
 8. **Update the memory bank**
-   - Update `activeContext.md` with the new feature and recent changes
-   - Update `progress.md` with completed work
-   - Update `systemPatterns.md` if architecture patterns changed
-   - Update `techContext.md` if dependencies or tech stack changed
+   - Use the `update-memory-bank` skill to review and update all memory bank files
 
 9. **Report the result**
    - Summarize the feature and how it was implemented
