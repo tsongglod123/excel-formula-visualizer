@@ -6,6 +6,14 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
+### Completed: New Agent Skills Installed & Documented (tooling)
+
+- **3 new project-local agent skills** added to `.agents/skills/` (tracked via `skills-lock.json`):
+  - `tailwind-design-system` (wshobson/agents) — Tailwind v4 CSS-first config, design tokens, theming; relevant to `global.css` `@theme` tokens.
+  - `typescript-advanced-types` (wshobson/agents) — generics, conditional/mapped/template-literal types, discriminated unions; relevant to parser/AST/translate libs.
+  - `vercel-composition-patterns` (vercel-labs/agent-skills) — compound components, context providers, composition over boolean props; relevant to React island refactors.
+- Trigger map updated in `AGENTS.md → Skills & MCP References` and `techContext.md → Skills & MCP Tooling`. All three are invoked on demand when a task matches their trigger.
+
 ### Completed: Compact, Office-Friendly Tree (compactness revisit)
 
 - **Problem** — after the structural-nesting fix, every function call became a row, so even `=IF(SUM(A1:A10)>100,"Yes","No")` exploded into 6 rows. Too tall for quick office scanning.

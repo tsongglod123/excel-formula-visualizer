@@ -17,6 +17,9 @@ Invoke a skill or MCP tool when the situation matches its trigger. Skills are lo
 - `code-review` — before merging a branch/PR or when asked to review a diff; two-axis (standards + spec) parallel review. _New._
 - `diagnosing-bugs` — when debugging a hard bug or performance regression; follow the red-loop → minimise → hypothesise → fix → regression-test cycle. _New._
 - `vercel-react-best-practices` — when writing/reviewing React components (hydration, bundle size, re-renders).
+- `vercel-composition-patterns` — when refactoring React components with boolean-prop proliferation, designing compound components/context providers, or reviewing component APIs.
+- `typescript-advanced-types` — when writing complex typed logic in the parser/AST/translator libs (generics, conditional/mapped/template-literal types, discriminated unions).
+- `tailwind-design-system` — when working on Tailwind v4 design tokens, theming, or standardizing UI patterns (CSS-first `@theme` config in `global.css`).
 - `astro-best-practices` — Astro defaults (static-first, hydration directives, a11y, perf).
 
 ### Authoring skills

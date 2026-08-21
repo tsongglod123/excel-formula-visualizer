@@ -162,6 +162,9 @@ Agent skills live in `.agents/skills/` (project-local, tracked via `skills-lock.
 | `write-coding-standards-from-file` | project | Generate a coding-standards doc from existing source |
 | `astro-best-practices`, `create-component`, `add-integration`, `content-collection`, `docs-lookup` | project | Astro work (perf/a11y, scaffolding, wiring, schemas, lookups) |
 | `vercel-react-best-practices` | project | React component work (hydration, bundle size, re-renders) |
+| `vercel-composition-patterns` | project | React component architecture: compound components, context providers, composition over boolean props |
+| `typescript-advanced-types` | project | Advanced TS type logic (generics, conditional/mapped/template-literal types) in parser/AST/translate libs |
+| `tailwind-design-system` | project | Tailwind v4 CSS-first design tokens, theming, responsive/a11y UI patterns |
 | `frontend-design`, `web-design-guidelines` | global | Distinctive UI direction; web-interface-guideline compliance |
 | `commit-message-storyteller` | global | Narrative Conventional Commit messages |
 | `documentation-writer`, `microsoft-docs`, `find-skills` | global | Docs writing, Microsoft reference lookups, skill discovery |
