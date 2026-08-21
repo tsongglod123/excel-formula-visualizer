@@ -234,9 +234,10 @@ src/pages/
 
 Props passed to a hydrated framework component (`client:*`) are serialized by Astro via `Object.entries` (`runtime/server/serialize.js`). **Class instances lose their prototype** — methods and getters are stripped; only own enumerable data properties survive as a plain object.
 
-- The OOP AST relies on `node.type` (getter), `getChildren()`, `getLabel()`, and `instanceof` checks, all of which break on the client if the AST is passed as-is (this blanked the visualizer).
-- **Pattern:** revive instances at the island entry point. Each node class has a `static fromObject(obj, revive)` factory; `ASTTraverser.deserializeAST(plain)` dispatches on structural shape and recursively revives children; `VisualizerClient` wraps the incoming prop with `useMemo(() => raw instanceof ASTNode ? raw : ASTTraverser.deserializeAST(raw), [raw])`.
-- `ASTNodeObject` (in `ASTNode.ts`) describes the serialized plain-object shape.
+- The OOP AST relies on `node.type`, `getChildren()`, `getLabel()`, and `instanceof` checks, all of which break on the client if the AST is passed as-is (this blanked the visualizer).
+- **Discriminated wire format:** each node class declares `type` as an **own class field** (`readonly type: NodeType = 'function'`), never a getter — own fields survive `Object.entries`, so the discriminator rides along the island boundary. `NodeType` is a closed union ('function' | 'operator' | 'reference' | 'literal' | 'parenthetical').
+- **Pattern:** revive instances at the island entry point. Each node class has a `static fromObject(<its precise variant>, revive)` factory; `ASTTraverser.deserializeAST(plain)` switches exhaustively on the `type` discriminant (compile-time checked) and recursively revives children; a private `deserializeLegacy` path keeps structural-shape matching for untagged pre-discriminator payloads. `VisualizerClient` wraps the incoming prop with `useMemo(() => raw instanceof ASTNode ? raw : ASTTraverser.deserializeAST(raw), [raw])`.
+- `ASTNodeObject` (in `ASTNode.ts`) is a **discriminated union** (`FunctionNodeObject | OperatorNodeObject | …`) tagged by `type`; `LegacyNodeObject` describes the old all-optional shape.
 - Only the AST prop needs this; `translation`/`nodeTranslations` are already plain data.
 
 ---

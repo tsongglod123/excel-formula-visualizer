@@ -17,6 +17,39 @@
      the typeface every Office app uses. */
   --font-family-office: system-ui, 'Segoe UI', -apple-system, sans-serif;
   --font-family-mono: 'Spline Sans Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* ── Node-type palette (formula outline) ──
+     Semantic tokens for the five AST node families. Each family has a base
+     shade (borders, rings, legend dots) and an `-ink` shade (text, tuned for
+     WCAG AA on the token's own subtle background). Components reference these
+     via utilities like `border-l-node-function` / `text-node-function-ink`,
+     so the palette lives here — not scattered through component class strings. */
+  --color-node-function: #38bdf8;      /* sky 400 */
+  --color-node-function-ink: #075985;  /* sky 800 */
+  --color-node-operator: #fbbf24;      /* amber 400 */
+  --color-node-operator-ink: #92400e;  /* amber 800 */
+  --color-node-reference: #a78bfa;     /* violet 400 */
+  --color-node-reference-ink: #6b21a8; /* violet 800 */
+  --color-node-literal: #34d399;       /* emerald 400 */
+  --color-node-literal-ink: #065f46;   /* emerald 800 */
+  --color-node-paren: #d6d3d1;         /* stone 300 */
+  --color-node-paren-ink: #44403c;     /* stone 700 */
+
+  /* Popover/tooltip entrance animation. Keyframes live inside @theme (Tailwind
+     v4 emits them when the --animate-* token is used) so the motion, like the
+     colors, is a design token rather than loose CSS. */
+  --animate-popover-in: popover-in 150ms ease-out both;
+
+  @keyframes popover-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
 }
 
 @layer base {
@@ -108,29 +141,16 @@
 
 /* Function help popover (tap-first: opens on hover for mice, on tap for touch).
    The trigger is a <button>, so prevent iOS double-tap zoom and the tap-highlight
-   flash. Rendered with position:fixed so it escapes the scrolling/zooming canvas. */
+   flash. Rendered with position:fixed so it escapes the scrolling/zooming canvas.
+   The entrance animation comes from the `animate-popover-in` utility (generated
+   from the --animate-popover-in token in @theme). */
 .fn-trigger {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
-.doc-popover {
-  animation: doc-popover-in 150ms ease-out both;
-  transform-origin: top center;
-}
-/* Reference-detail tooltip entrance (shares the popover-in keyframes). */
+.doc-popover,
 .ref-tip {
-  animation: doc-popover-in 150ms ease-out both;
   transform-origin: top center;
-}
-@keyframes doc-popover-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px) scale(0.98);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

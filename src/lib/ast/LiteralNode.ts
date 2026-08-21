@@ -1,22 +1,20 @@
 import { ASTNode } from './ASTNode';
-import type { ASTNodeObject } from './ASTNode';
+import type { LiteralNodeObject, LiteralValueType } from './ASTNode';
 
-export type LiteralValueType = 'number' | 'string' | 'boolean';
+export type { LiteralValueType };
 
 /**
  * Represents a literal value in the AST, e.g. `42`, `"text"`, `TRUE`.
  */
 export class LiteralNode extends ASTNode {
+  readonly type = 'literal' as const;
+
   constructor(
     id: string,
     public readonly value: number | string | boolean,
     public readonly valueType: LiteralValueType
   ) {
     super(id);
-  }
-
-  get type(): string {
-    return 'literal';
   }
 
   getChildren(): ASTNode[] {
@@ -31,7 +29,7 @@ export class LiteralNode extends ASTNode {
 
 
   /** Reconstructs a LiteralNode from its serialized plain-object shape. */
-  static fromObject(obj: ASTNodeObject): LiteralNode {
-    return new LiteralNode(obj.id, obj.value ?? 0, obj.valueType ?? 'number');
+  static fromObject(obj: LiteralNodeObject): LiteralNode {
+    return new LiteralNode(obj.id, obj.value, obj.valueType);
   }
 }

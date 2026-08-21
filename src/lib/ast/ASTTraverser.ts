@@ -1,5 +1,13 @@
 import { ASTNode } from './ASTNode';
-import type { ASTNodeObject } from './ASTNode';
+import type {
+  ASTNodeObject,
+  LegacyNodeObject,
+  FunctionNodeObject,
+  OperatorNodeObject,
+  ReferenceNodeObject,
+  LiteralNodeObject,
+  ParentheticalNodeObject,
+} from './ASTNode';
 import { FunctionNode } from './FunctionNode';
 import { OperatorNode } from './OperatorNode';
 import { LiteralNode } from './LiteralNode';
@@ -119,16 +127,60 @@ export class ASTTraverser {
   /**
    * Reconstructs a proper ASTNode class instance from the plain-object shape
    * produced when the AST crosses the Astro island boundary (props are
-   * serialized via `Object.entries`, which drops prototype methods/getters).
-   * Dispatches on structural shape and recursively revives children.
+   * serialized via `Object.entries`, which drops prototype methods).
+   *
+   * Dispatches on the `type` discriminant (see the discriminated
+   * `ASTNodeObject` union) so the compiler enforces that every node type is
+   * handled — adding a new node class without a case here is a type error.
+   * Falls back to structural-shape matching for legacy payloads serialized
+   * before `type` became an own class field.
    */
   static deserializeAST(obj: ASTNodeObject): ASTNode {
-    const revive = (o: ASTNodeObject): ASTNode => ASTTraverser.deserializeAST(o);
-    if (obj.name !== undefined || obj.args !== undefined) return FunctionNode.fromObject(obj, revive);
-    if (obj.operator !== undefined) return OperatorNode.fromObject(obj, revive);
-    if (obj.reference !== undefined) return ReferenceNode.fromObject(obj);
-    if (obj.expression !== undefined) return ParentheticalNode.fromObject(obj, revive);
-    if (obj.valueType !== undefined || obj.value !== undefined) return LiteralNode.fromObject(obj);
+    if ('type' in obj) {
+      const { type, id } = obj;
+      const revive = (o: ASTNodeObject): ASTNode => ASTTraverser.deserializeAST(o);
+      switch (type) {
+        case 'function':
+          return FunctionNode.fromObject(obj as FunctionNodeObject, revive);
+        case 'operator':
+          return OperatorNode.fromObject(obj as OperatorNodeObject, revive);
+        case 'reference':
+          return ReferenceNode.fromObject(obj as ReferenceNodeObject);
+        case 'literal':
+          return LiteralNode.fromObject(obj as LiteralNodeObject);
+        case 'parenthetical':
+          return ParentheticalNode.fromObject(obj as ParentheticalNodeObject, revive);
+      }
+      throw new Error(`Cannot deserialize AST node ${id}: unknown node type '${String(type)}'.`);
+    }
+    return ASTTraverser.deserializeLegacy(obj);
+  }
+
+  /**
+   * Legacy revival path: the pre-discriminator wire format carried no `type`
+   * tag (it lived on the prototype as a getter, stripped by serialization),
+   * so the node kind must be inferred from structural shape. Constructs the
+   * concrete classes directly — the typed `fromObject` factories stay
+   * reserved for properly tagged payloads.
+   */
+  private static deserializeLegacy(obj: LegacyNodeObject): ASTNode {
+    const revive = (o: LegacyNodeObject): ASTNode => ASTTraverser.deserializeLegacy(o);
+    if (obj.name !== undefined || obj.args !== undefined) {
+      return new FunctionNode(obj.id, obj.name ?? '', (obj.args ?? []).map(revive));
+    }
+    if (obj.operator !== undefined) {
+      if (!obj.left) throw new Error(`Operator node ${obj.id} is missing its left operand.`);
+      return new OperatorNode(obj.id, obj.operator, revive(obj.left), obj.right ? revive(obj.right) : undefined);
+    }
+    if (obj.reference !== undefined) {
+      return new ReferenceNode(obj.id, obj.reference, obj.range);
+    }
+    if (obj.expression !== undefined) {
+      return new ParentheticalNode(obj.id, revive(obj.expression));
+    }
+    if (obj.valueType !== undefined || obj.value !== undefined) {
+      return new LiteralNode(obj.id, obj.value ?? 0, obj.valueType ?? 'number');
+    }
     throw new Error(`Cannot deserialize AST node ${obj.id}: unrecognized shape.`);
   }
 }

@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { ASTNode } from '../../lib/ast';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import type { ASTNode, NodeType } from '../../lib/ast';
 import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../../lib/ast';
 import { ASTTraverser } from '../../lib/ast';
 import { getArgName } from '../../lib/functionArgs';
@@ -25,36 +25,40 @@ interface StyleSet {
   ring: string;
 }
 
-const STYLES: Record<string, StyleSet> = {
+// Per-node-type styling, keyed by the exhaustive NodeType union — adding a
+// node kind without a palette entry is a compile error. Colors come from the
+// semantic --color-node-* tokens in global.css (@theme), so the palette is
+// defined once as design tokens rather than raw Tailwind shades.
+const STYLES: Record<NodeType, StyleSet> = {
   function: {
-    border: 'border-l-sky-400',
-    bg: 'bg-sky-50/50',
-    text: 'text-sky-800',
-    ring: 'ring-sky-400/40',
+    border: 'border-l-node-function',
+    bg: 'bg-node-function/10',
+    text: 'text-node-function-ink',
+    ring: 'ring-node-function/40',
   },
   operator: {
-    border: 'border-l-amber-400',
-    bg: 'bg-amber-50/50',
-    text: 'text-amber-800',
-    ring: 'ring-amber-400/40',
+    border: 'border-l-node-operator',
+    bg: 'bg-node-operator/10',
+    text: 'text-node-operator-ink',
+    ring: 'ring-node-operator/40',
   },
   reference: {
-    border: 'border-l-violet-400',
-    bg: 'bg-violet-50/50',
-    text: 'text-violet-800',
-    ring: 'ring-violet-400/40',
+    border: 'border-l-node-reference',
+    bg: 'bg-node-reference/10',
+    text: 'text-node-reference-ink',
+    ring: 'ring-node-reference/40',
   },
   literal: {
-    border: 'border-l-emerald-400',
-    bg: 'bg-emerald-50/50',
-    text: 'text-emerald-800',
-    ring: 'ring-emerald-400/40',
+    border: 'border-l-node-literal',
+    bg: 'bg-node-literal/10',
+    text: 'text-node-literal-ink',
+    ring: 'ring-node-literal/40',
   },
   parenthetical: {
-    border: 'border-l-stone-300',
-    bg: 'bg-stone-100/50',
-    text: 'text-stone-700',
-    ring: 'ring-stone-400/40',
+    border: 'border-l-node-paren',
+    bg: 'bg-node-paren/15',
+    text: 'text-node-paren-ink',
+    ring: 'ring-node-paren/40',
   },
 };
 
@@ -190,6 +194,31 @@ interface RefTooltipContextValue {
 }
 const RefTooltipContext = createContext<RefTooltipContextValue | null>(null);
 
+// Shared per-tree rendering inputs for the recursive outline. Every row needs
+// the same eight values (evaluation order, current step, highlight/selection
+// state, dimming, and the hover/select handlers), which used to be threaded
+// through every recursion level as props. A single provider keeps OutlineNode's
+// signature down to the three values that actually vary per node.
+interface OutlineContextValue {
+  evalOrder: Map<string, number>;
+  currentStep: number | null;
+  currentStepNodeId: string | null;
+  highlightedNodeId: string | null;
+  selectedReference: string | null;
+  dimmedIds: Set<string>;
+  onHover: (id: string | null) => void;
+  onClickRef: (ref: string) => void;
+}
+const OutlineContext = createContext<OutlineContextValue | null>(null);
+
+function useOutline(): OutlineContextValue {
+  const ctx = useContext(OutlineContext);
+  if (!ctx) {
+    throw new Error('Outline rows must be rendered inside <FormulaOutline> (OutlineContext.Provider).');
+  }
+  return ctx;
+}
+
 // A function name in the tree. It is a <button> (not a span) so a tap on
 // touch screens opens the help popover, and keyboard users can reach it.
 function FunctionNameButton({ fn, style, size = 'text-sm' }: { fn: FunctionNode; style: StyleSet; size?: string }) {
@@ -213,22 +242,9 @@ function FunctionNameButton({ fn, style, size = 'text-sm' }: { fn: FunctionNode;
   );
 }
 
-function CompactSubtree({
-  node,
-  highlightedNodeId,
-  currentStepNodeId,
-  selectedReference,
-  onHover,
-  onClickRef,
-}: {
-  node: ASTNode;
-  highlightedNodeId: string | null;
-  currentStepNodeId: string | null;
-  selectedReference: string | null;
-  onHover: (id: string | null) => void;
-  onClickRef?: (ref: string) => void;
-}) {
-  const style = STYLES[node.type] ?? STYLES.parenthetical;
+function CompactSubtree({ node }: { node: ASTNode }) {
+  const { highlightedNodeId, currentStepNodeId, selectedReference, onHover, onClickRef } = useOutline();
+  const style = STYLES[node.type];
   const tipCtx = useContext(RefTooltipContext);
   const hl = (id: string) => (highlightedNodeId === id || currentStepNodeId === id ? `ring-2 ${style.ring}` : "");
 
@@ -251,10 +267,10 @@ function CompactSubtree({
         }}
         onFocus={isRef ? (e) => tipCtx?.onOpen((node as ReferenceNode).reference, e.currentTarget) : undefined}
         onBlur={isRef ? () => tipCtx?.onClose() : undefined}
-        onClick={isRef && onClickRef ? () => onClickRef((node as ReferenceNode).reference) : undefined}
+        onClick={isRef ? () => onClickRef((node as ReferenceNode).reference) : undefined}
         role={isRef ? 'button' : undefined}
         tabIndex={isRef ? 0 : undefined}
-        onKeyDown={isRef && onClickRef ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickRef((node as ReferenceNode).reference); } } : undefined}
+        onKeyDown={isRef ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClickRef((node as ReferenceNode).reference); } } : undefined}
         className={`relative inline-flex items-center gap-1.5 rounded-md border border-border border-l-4 ${style.border} ${style.bg} px-2 py-1 transition-shadow ${pillRing} ${isRef ? 'cursor-pointer' : ''}`}
       >
         <span className={`font-mono text-xs font-medium ${style.text}`}>{node.getLabel()}</span>
@@ -271,10 +287,10 @@ function CompactSubtree({
         onMouseLeave={() => onHover(null)}
         className={`inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 transition-shadow ${hl(op.id)}`}
       >
-        <CompactSubtree node={op.left} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+        <CompactSubtree node={op.left} />
         <span className="font-mono text-xs font-semibold text-ink-muted">{operatorSymbol(op.operator)}</span>
         {op.right && (
-          <CompactSubtree node={op.right} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+          <CompactSubtree node={op.right} />
         )}
       </span>
     );
@@ -295,7 +311,7 @@ function CompactSubtree({
         {fn.args.map((arg, i) => (
           <span key={arg.id} className="inline-flex items-center gap-1">
             {i > 0 && <span className="text-xs text-ink-muted">,</span>}
-            <CompactSubtree node={arg} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+            <CompactSubtree node={arg} />
           </span>
         ))}
         <span className={`font-mono text-xs font-bold ${style.text}`}>)</span>
@@ -311,7 +327,7 @@ function CompactSubtree({
       className={`inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 transition-shadow ${hl(paren.id)}`}
     >
       <span className="font-mono text-xs text-ink-muted">(</span>
-      <CompactSubtree node={paren.expression} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+      <CompactSubtree node={paren.expression} />
       <span className="font-mono text-xs text-ink-muted">)</span>
     </span>
   );
@@ -324,27 +340,14 @@ function OutlineNode({
   node,
   depth,
   argLabel,
-  evalOrder,
-  currentStep,
-  currentStepNodeId,
-  highlightedNodeId,
-  selectedReference,
-  dimmedIds,
-  onHover,
-  onClickRef,
 }: {
   node: ASTNode;
   depth: number;
   argLabel?: string;
-  evalOrder: Map<string, number>;
-  currentStep: number | null;
-  currentStepNodeId: string | null;
-  highlightedNodeId: string | null;
-  selectedReference: string | null;
-  dimmedIds: Set<string>;
-  onHover: (id: string | null) => void;
-  onClickRef: (ref: string) => void;
 }) {
+  // Shared per-tree inputs (evaluation order, highlight/selection state,
+  // handlers) come from context — only the three values above vary per node.
+  const { evalOrder, currentStep, currentStepNodeId, highlightedNodeId, selectedReference, dimmedIds, onHover, onClickRef } = useOutline();
   const style = STYLES[node.type];
   const stepNumber = evalOrder.get(node.id);
 
@@ -471,7 +474,7 @@ function OutlineNode({
           >
             {argLabelEl}
             {stepBadge}
-            <CompactSubtree node={op} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+            <CompactSubtree node={op} />
           </div>
         </li>
       );
@@ -495,7 +498,7 @@ function OutlineNode({
             isCompactSubtree(child) ? (
               <li key={child.id} role="treeitem" aria-selected="false" className="tree-row">
                 <div className="tree-tick inline-flex max-w-full flex-wrap items-center gap-1.5 px-2 py-1">
-                  <CompactSubtree node={child} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+                  <CompactSubtree node={child} />
                 </div>
               </li>
             ) : (
@@ -503,14 +506,6 @@ function OutlineNode({
                 key={child.id}
                 node={child}
                 depth={depth + 1}
-                evalOrder={evalOrder}
-                currentStep={currentStep}
-                currentStepNodeId={currentStepNodeId}
-                highlightedNodeId={highlightedNodeId}
-                selectedReference={selectedReference}
-                dimmedIds={dimmedIds}
-                onHover={onHover}
-                onClickRef={onClickRef}
               />
             )
           )}
@@ -545,7 +540,7 @@ function OutlineNode({
                     <span className="shrink-0 rounded border border-border bg-surface px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-ink-muted/80">
                       {label}
                     </span>
-                    <CompactSubtree node={arg} highlightedNodeId={highlightedNodeId} currentStepNodeId={currentStepNodeId} selectedReference={selectedReference} onHover={onHover} onClickRef={onClickRef} />
+                    <CompactSubtree node={arg} />
                   </div>
                 </li>
               ) : (
@@ -554,14 +549,6 @@ function OutlineNode({
                   node={arg}
                   depth={depth + 1}
                   argLabel={label}
-                  evalOrder={evalOrder}
-                  currentStep={currentStep}
-                  currentStepNodeId={currentStepNodeId}
-                  highlightedNodeId={highlightedNodeId}
-                  selectedReference={selectedReference}
-                  dimmedIds={dimmedIds}
-                  onHover={onHover}
-                  onClickRef={onClickRef}
                 />
               );
             })}
@@ -589,14 +576,6 @@ function OutlineNode({
         <OutlineNode
           node={paren.expression}
           depth={depth + 1}
-          evalOrder={evalOrder}
-          currentStep={currentStep}
-          currentStepNodeId={currentStepNodeId}
-          highlightedNodeId={highlightedNodeId}
-          selectedReference={selectedReference}
-          dimmedIds={dimmedIds}
-          onHover={onHover}
-          onClickRef={onClickRef}
         />
       </CollapsibleChildren>
     </li>
@@ -926,9 +905,26 @@ export default function FormulaOutline({
     return null;
   }, [evalOrder, currentStep]);
 
-  const handleClickRef = (ref: string) => {
+  const handleClickRef = useCallback((ref: string) => {
     onSelectReference(selectedReference === ref ? null : ref);
-  };
+  }, [onSelectReference, selectedReference]);
+
+  // Context value consumed by every recursive outline row. Memoized so a
+  // re-render doesn't rebuild the value object (and re-render every row) when
+  // nothing it contains changed.
+  const outlineCtx = useMemo<OutlineContextValue>(
+    () => ({
+      evalOrder,
+      currentStep,
+      currentStepNodeId,
+      highlightedNodeId,
+      selectedReference,
+      dimmedIds,
+      onHover: onHoverNode,
+      onClickRef: handleClickRef,
+    }),
+    [evalOrder, currentStep, currentStepNodeId, highlightedNodeId, selectedReference, dimmedIds, onHoverNode, handleClickRef]
+  );
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-surface-elevated">
@@ -960,16 +956,16 @@ export default function FormulaOutline({
         </div>
         <div className="flex flex-wrap gap-2 text-xs" aria-label="Color legend">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-medium text-ink-muted">
-            <span className="h-2 w-2 rounded-full bg-sky-500" aria-hidden="true"></span> Function
+            <span className="h-2 w-2 rounded-full bg-node-function" aria-hidden="true"></span> Function
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-medium text-ink-muted">
-            <span className="h-2 w-2 rounded-full bg-amber-500" aria-hidden="true"></span> Operator
+            <span className="h-2 w-2 rounded-full bg-node-operator" aria-hidden="true"></span> Operator
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-medium text-ink-muted">
-            <span className="h-2 w-2 rounded-full bg-violet-500" aria-hidden="true"></span> Reference
+            <span className="h-2 w-2 rounded-full bg-node-reference" aria-hidden="true"></span> Reference
           </span>
           <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-elevated px-2.5 py-1 font-medium text-ink-muted">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true"></span> Literal
+            <span className="h-2 w-2 rounded-full bg-node-literal" aria-hidden="true"></span> Literal
           </span>
         </div>
       </div>
@@ -1001,20 +997,11 @@ export default function FormulaOutline({
             <FunctionDocContext.Provider value={docCtx}>
             <CollapseContext.Provider value={collapseCtx}>
             <RefTooltipContext.Provider value={refTipCtx}>
+            <OutlineContext.Provider value={outlineCtx}>
             <ul role="tree" aria-label="Formula structure tree" className="min-w-max">
-              <OutlineNode
-                node={ast}
-                depth={0}
-                evalOrder={evalOrder}
-                currentStep={currentStep}
-                currentStepNodeId={currentStepNodeId}
-                highlightedNodeId={highlightedNodeId}
-                selectedReference={selectedReference}
-                dimmedIds={dimmedIds}
-                onHover={onHoverNode}
-                onClickRef={handleClickRef}
-              />
+              <OutlineNode node={ast} depth={0} />
             </ul>
+            </OutlineContext.Provider>
             </RefTooltipContext.Provider>
             </CollapseContext.Provider>
             </FunctionDocContext.Provider>
@@ -1050,7 +1037,7 @@ export default function FormulaOutline({
               ref={popoverRef}
               role="region"
               aria-label={`Help for the ${doc.name} function`}
-              className="doc-popover fixed z-50 rounded-lg border border-border bg-surface-elevated p-3.5 shadow-xl"
+              className="doc-popover animate-popover-in fixed z-50 rounded-lg border border-border bg-surface-elevated p-3.5 shadow-xl"
               onMouseEnter={() => {
                 inPopover.current = true;
                 clearCloseTimer();
@@ -1113,9 +1100,9 @@ export default function FormulaOutline({
               id="ref-tooltip"
               ref={refTipRef}
               role="tooltip"
-              className="ref-tip pointer-events-none fixed z-50 rounded-lg border border-border bg-surface-elevated p-3 shadow-xl"
+              className="ref-tip animate-popover-in pointer-events-none fixed z-50 rounded-lg border border-border bg-surface-elevated p-3 shadow-xl"
             >
-              <p className="font-mono text-sm font-bold text-violet-800">{refTip.ref}</p>
+              <p className="font-mono text-sm font-bold text-node-reference-ink">{refTip.ref}</p>
               <dl className="mt-1.5 space-y-1 text-[11px] leading-snug">
                 <div className="flex items-baseline justify-between gap-3">
                   <dt className="text-ink-muted">Type</dt>

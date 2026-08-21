@@ -6,6 +6,15 @@ The project is in an **active development** phase. All three core layers (Parse,
 
 ## Recent Changes
 
+### Completed: Skills-Driven Refactor (typescript-advanced-types + vercel-composition-patterns + tailwind-design-system)
+
+First codebase pass applying the three newly installed skills. Behavior-preserving; all 226 tests green, astro check 0 errors, build clean.
+
+- **`typescript-advanced-types` → AST wire format is now a discriminated union.** Root cause fixed: `type` was a prototype **getter**, so Astro's island serializer (`Object.entries`) stripped it and `deserializeAST` had to *guess* node kinds from structural shape (`if (obj.name !== undefined …)`) — an empty-name FunctionNode would misroute. Now each node class declares `readonly type: NodeType = '…'` as an **own class field** (survives serialization), `NodeType` is a closed union, `ASTNodeObject` became a discriminated union of 5 precise variants (`LegacyNodeObject` kept for defensive fallback), each `fromObject` takes its exact variant (defensive `?? ''`/`?? 0` fallbacks deleted), and `deserializeAST` switches exhaustively on the tag with a compile-time exhaustiveness guarantee. Also: `AnyAstNode` union in `ast/index.ts` lets `translateInternal` narrow per case (per-case casts removed, `never` default check).
+- **`vercel-composition-patterns` → OutlineContext kills prop-drilling.** `OutlineNode` took 11 props / `CompactSubtree` 6, with 8 identical values threaded through every recursion level. New `OutlineContext` (+ `useOutline()` hook that throws outside a provider) provides evalOrder/currentStep/currentStepNodeId/highlightedNodeId/selectedReference/dimmedIds/onHover/onClickRef once — signatures shrink to `{node, depth, argLabel?}` and `{node}`. Context value memoized; `handleClickRef` wrapped in `useCallback`. Fourth context in the file, matching the established Collapse/RefTooltip/FunctionDoc pattern.
+- **`tailwind-design-system` → node palette & popover motion are design tokens now.** Added `--color-node-{function|operator|reference|literal|paren}` + `-ink` shades to `@theme` (base = old 400-level border/ring/dot shade, ink = old 800/700 text shade, AA-checked); `STYLES` retyped `Record<NodeType, StyleSet>` (exhaustive — new node type without a palette entry fails to compile) and uses token utilities (`border-l-node-function`, `bg-node-function/10`, `text-node-function-ink`). Legend dots and the ref-tooltip heading use tokens too. Popover keyframes moved into `@theme` as `--animate-popover-in`; `.doc-popover`/`.ref-tip` get the generated `animate-popover-in` utility (reduced-motion override still applies).
+- Visual deltas are negligible by design (legend dots 500→400-level shade; subtle bgs via opacity modifiers ≈ old -50 tints).
+
 ### Completed: New Agent Skills Installed & Documented (tooling)
 
 - **3 new project-local agent skills** added to `.agents/skills/` (tracked via `skills-lock.json`):

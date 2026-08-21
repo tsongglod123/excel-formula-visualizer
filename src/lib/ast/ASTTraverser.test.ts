@@ -155,7 +155,7 @@ describe('ASTTraverser', () => {
     });
 
     it('throws on an unrecognized shape', () => {
-      expect(() => ASTTraverser.deserializeAST({ id: 'x' })).toThrow();
+      expect(() => ASTTraverser.deserializeAST({ id: 'x' } as ASTNodeObject)).toThrow();
     });
   });
 });

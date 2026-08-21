@@ -1,4 +1,5 @@
-import { ASTNode, FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../ast';
+import { ASTNode, type AnyAstNode } from '../ast';
+import { FunctionNode, OperatorNode, ReferenceNode, LiteralNode, ParentheticalNode } from '../ast';
 import { TranslationContext } from './TranslationContext';
 import { logicalTranslators } from './logical';
 import { mathTranslators } from './math';
@@ -40,19 +41,27 @@ const FUNCTION_REGISTRY: Record<string, FunctionTranslator> = {
 // ─── Internal recursive translation (lowercase) ───
 
 function translateInternal(node: ASTNode): string {
-  switch (node.type) {
+  // Every runtime instance is one of the five concrete node classes; the
+  // AnyAstNode union carries a literal `type` per member, so this switch
+  // narrows `n` per case (no casts) and the `default` branch is a
+  // compile-time exhaustiveness check.
+  const n = node as AnyAstNode;
+  switch (n.type) {
     case 'function':
-      return translateFunction(node as FunctionNode);
+      return translateFunction(n);
     case 'operator':
-      return translateOperator(node as OperatorNode);
+      return translateOperator(n);
     case 'reference':
-      return translateReference(node as ReferenceNode);
+      return translateReference(n);
     case 'literal':
-      return translateLiteral(node as LiteralNode);
+      return translateLiteral(n);
     case 'parenthetical':
-      return translateParenthetical(node as ParentheticalNode);
-    default:
+      return translateParenthetical(n);
+    default: {
+      const _exhaustive: never = n;
+      void _exhaustive;
       return 'unknown';
+    }
   }
 }
 
