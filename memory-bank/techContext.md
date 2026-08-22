@@ -16,6 +16,7 @@
 |---|---|---|
 | `@astrojs/react` | v6.0.2 | Astro integration for React component support |
 | `@astrojs/netlify` | v8.1.3 | Netlify adapter for on-demand rendering of `/visualize` |
+| `@astrojs/sitemap` | v3.7.3 | Sitemap generation at build (`sitemap-index.xml`); requires `site` in `astro.config.mjs` |
 | `@tailwindcss/vite` | v4.3.3 | Vite plugin for Tailwind CSS v4 |
 | `@astrojs/check` | v0.9.10 | Type checking for Astro components |
 
@@ -76,7 +77,7 @@ npm run preview         # Preview production build locally via Netlify CLI
 ## Configuration Files
 
 ### `astro.config.mjs`
-- Astro configuration with React integration and Netlify adapter
+- Astro configuration with React integration, sitemap integration, and Netlify adapter
 - Netlify adapter enables on-demand rendering for server routes
 - Tailwind CSS configured via `@tailwindcss/vite` Vite plugin
 

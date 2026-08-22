@@ -137,8 +137,39 @@ export default function EvaluatorBar({
     ? translationMap.get(currentNode) ?? getStepAction(ASTTraverser.findNode(ast, currentNode)!)
     : null;
 
+  // Shortcuts are scoped to this panel (it is tabbable) rather than global,
+  // so they can never fight browser defaults elsewhere on the page.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    switch (e.key) {
+      case 'ArrowRight':
+        e.preventDefault();
+        onStepForward();
+        break;
+      case 'ArrowLeft':
+        e.preventDefault();
+        onStepBackward();
+        break;
+      case ' ':
+        // A focused button activates itself on Space; only treat Space as
+        // play/pause when the panel itself (not a child control) has focus.
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+          onTogglePlay();
+        }
+        break;
+      case 'Escape':
+        onReset();
+        break;
+    }
+  };
+
   return (
-    <div className="space-y-3 rounded-xl border border-border bg-surface-elevated p-4">
+    <div
+      className="space-y-3 rounded-xl border border-border bg-surface-elevated p-4"
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <button
@@ -219,7 +250,12 @@ export default function EvaluatorBar({
       )}
 
       {currentStep === null && (
-        <p className="text-xs text-ink-muted">Press Play to walk through the formula the same way Excel evaluates it.</p>
+        <p className="text-xs text-ink-muted">
+          Press <kbd className="font-semibold">Play</kbd> — or focus this panel and use{' '}
+          <kbd className="font-semibold">←</kbd>/<kbd className="font-semibold">→</kbd> to step and{' '}
+          <kbd className="font-semibold">Space</kbd> to play/pause — to walk through the formula the
+          same way Excel evaluates it.
+        </p>
       )}
     </div>
   );

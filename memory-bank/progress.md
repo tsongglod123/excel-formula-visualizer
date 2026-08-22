@@ -39,6 +39,7 @@
 ### Visualize Layer ✅
 - `FormulaOutline` component — file-explorer style tree with connector guides, compact leaf pills, zoom controls
 - `EvaluatorBar` component — step-by-step evaluation with play/pause/step/reset
+- Evaluator keyboard shortcuts — scoped to the evaluator panel (tabbable): `←`/`→` step, `Space` play/pause, `Esc` reset; never hijacks focused buttons' native Space activation or modifier-key combos
 - `ExplanationPanel` component — full plain-English translation with copy button (step-by-step breakdown tree removed as redundant with EvaluatorBar's current-step display)
 - `VisualizerClient` — orchestrates all interactive components
 - Color coding: Functions (blue), Operators (amber), References (violet), Literals (green), Parentheses (gray)
@@ -62,6 +63,7 @@
 - Responsive navbar with mobile menu
 - Footer with links
 - Copy URL / share button
+- SEO — sitemap (`@astrojs/sitemap`, emits `sitemap-index.xml` at build) + `public/robots.txt` pointing at it
 - Recent formulas — localStorage-backed history of visualized formulas (`src/lib/formulaHistory.ts`), rendered as clickable chips on the landing hero and the visualize editor (`src/components/react/RecentFormulas.tsx`)
 - Skip-to-content link for accessibility
 - View transitions via `<ClientRouter />`
@@ -70,7 +72,7 @@
 - Astro 7 + React 19 + Tailwind CSS 4
 - Netlify adapter with on-demand rendering for `/visualize`
 - TypeScript strict mode
-- Vitest test setup (226 tests passing) with jsdom + Testing Library for component tests
+- Vitest test setup (229 tests passing) with jsdom + Testing Library for component tests
 - Fonts: Bricolage Grotesque (body), Spline Sans Mono (code)
 
 ---
@@ -102,7 +104,7 @@ _None active — the previous in-progress item (collapsible groups) shipped in t
 - [ ] Localization support (multiple languages)
 
 ### UX & Features
-- [ ] Keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
+- [x] Keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause) — scoped to the evaluator panel
 - [ ] Export visualization as image
 - [ ] Embed/share via iframe
 - [ ] Example formula gallery

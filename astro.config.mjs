@@ -7,6 +7,8 @@ import react from '@astrojs/react';
 
 import netlify from '@astrojs/netlify';
 
+import sitemap from '@astrojs/sitemap';
+
 // https://astro.build/config
 export default defineConfig({
   site: "https://excel-formula-visualizer.netlify.app",
@@ -15,6 +17,6 @@ export default defineConfig({
     plugins: [tailwindcss()]
   },
 
-  integrations: [react()],
+  integrations: [react(), sitemap()],
   adapter: netlify()
 });

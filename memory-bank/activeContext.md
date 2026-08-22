@@ -2,9 +2,15 @@
 
 ## Current Focus
 
-The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 222 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups, connection lines, reference tooltips, formula history, structural nesting, compact-by-default pills, and Expand/Collapse-all just shipped. Next up: evaluator keyboard shortcuts, then Playwright E2E.
+The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 229 passing tests. Evaluator keyboard shortcuts and sitemap/robots.txt just shipped. Next up: Playwright E2E.
 
 ## Recent Changes
+
+### Completed: Evaluator Keyboard Shortcuts + Sitemap (229 tests green, astro check 0 errors, build clean)
+
+- **`EvaluatorBar` keyboard shortcuts, scoped to the panel** — root div now `tabIndex={0}` with an `onKeyDown` handler: `→`/`←` step forward/backward, `Space` play/pause, `Esc` reset. Space only fires when the panel itself has focus (`e.target === e.currentTarget`) so it never double-fires against a focused button's native activation; Ctrl/Meta/Alt combos ignored; arrows `preventDefault()` to stop page scroll. Hint copy updated with `<kbd>` styling. 7 new jsdom tests in `EvaluatorBar.test.tsx` (each shortcut + guards).
+- **Sitemap via `@astrojs/sitemap`** — added to `integrations` in `astro.config.mjs` (the required `site` was already set). Build emits `dist/sitemap-index.xml` + `sitemap-0.xml`. Added `public/robots.txt` pointing crawlers at the sitemap index.
+- **Build flakiness note**: one `npm run build` failed in the Netlify adapter's `astro:build:done` (`File .netlify\build\entry.mjs does not exist`). Deleting the stale generated `.netlify/` directory fixed it; the error also reappeared once when two node-heavy commands ran concurrently. If seen again: clean `.netlify/`, rebuild alone.
 
 ### Completed: Ponytail Deletion Pass
 
@@ -153,15 +159,14 @@ _None active — collapsible groups, connection lines, reference tooltips, formu
 
 ## Next Steps (Priority Order)
 
-1. Consider keyboard shortcuts for step-by-step mode (arrow keys, space for play/pause)
-2. Add end-to-end tests with Playwright (real browser, island hydration)
+1. Add end-to-end tests with Playwright (real browser, island hydration)
 
 ## Active Decisions & Considerations
 
 - **Collapsible groups (resolved)**: React `useState` in `FormulaOutline` (`Set<string>`), CSS grid-rows transition for height, `inert` + `aria-hidden` on hidden subtrees. State intentionally not persisted; resets on new AST.
 - **Reference connection lines (resolved)**: SVG overlay inside the zoom canvas (not a separate layer) — transform-free offset measurement, lines scale with zoom for free, `[inert]`-collapsed occurrences excluded.
 - **Tooltip positioning (resolved)**: Reused the function-doc popover pattern — `position: fixed` (escapes the zoomed/scrolling canvas), bottom-edge flip, viewport clamping. No floating-UI dependency needed.
-- **Keyboard shortcuts**: Need to scope shortcuts to the evaluator component only (not global) to avoid conflicts with browser defaults.
+- **Keyboard shortcuts (resolved)**: Scoped to the `EvaluatorBar` panel (tabbable root, `onKeyDown` on the container), not global — no browser-default conflicts. Space play/pause only when the panel itself is focused; arrows step; Esc resets.
 
 ## Important Patterns & Preferences
 
