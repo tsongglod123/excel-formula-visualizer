@@ -4,6 +4,7 @@
 
 ### Tooling & Skills ✅
 - Agent skills installed: `codebase-design`, `code-review`, `diagnosing-bugs` (global) and `write-coding-standards-from-file` (project-local, in `skills-lock.json`) — plus the existing Astro/React framework skills
+- **Global operating rule `ponytail`** installed in `~/.cline/rules/` (lazy senior dev mode) — governs all coding: YAGNI-first, reuse before write, minimum working diff, `ponytail:` comments on known-ceiling simplifications, and non-trivial logic ships one runnable check
 - `CONTRIBUTING.md` generated from `src/` conventions via the `write-coding-standards-from-file` skill
 - Full skill trigger map documented in `AGENTS.md` and `memory-bank/techContext.md`
 
@@ -12,14 +13,14 @@
 - **OOP class hierarchy**: `Tokenizer`, `Parser`, `FormulaError` in `src/lib/parser/`
 - **AST class hierarchy**: `ASTNode` abstract base + 5 concrete node classes in `src/lib/ast/`
   - Polymorphic methods: `getChildren()`, `getLabel()`, `isLeaf()`
-- **ASTTraverser**: Static utility class for tree traversal (findNode, getSubtreeIds, getParentMap, getNodeIndex, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap)
+- **ASTTraverser**: Static utility class for tree traversal (findNode, getSubtreeIds, getNodeIndex, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap)
 - Cell references: relative (`A1`), absolute (`$A$1`), mixed (`A$1`, `$A1`)
 - Ranges: `A1:A10`, full columns (`B:B`), full rows (`1:1`), cross-sheet (`Sheet1!A1:Sheet2!B2`)
 - Sheet-qualified references (`Sheet1!C5`, `'My Sheet'!A1`)
 - Operators: arithmetic (`+`, `-`, `*`, `/`, `^`, `%`), comparison (`=`, `<>`, `>`, `<`, `>=`, `<=`), concatenation (`&`), unary minus
 - Literals: numbers (including scientific notation, decimals), strings (with `""` escaping), booleans
 - Error handling with position tracking (`FormulaError`)
-- 54 parser unit tests + 21 ASTTraverser unit tests
+- 54 parser unit tests + 17 ASTTraverser unit tests
 
 ### Explain Layer ✅
 - Plain English translation for 100+ Excel functions
@@ -124,7 +125,7 @@ _None active — the previous in-progress item (collapsible groups) shipped in t
 
 ## Known Issues
 
-_No critical known issues at this time. All 226 tests are passing._
+_No critical known issues at this time. All 222 tests are passing._
 
 ---
 
@@ -173,7 +174,7 @@ _No critical known issues at this time. All 226 tests are passing._
 |---|---|---|
 | Parser (`parser.test.ts`) | 54 | Operator precedence, functions, nested, references, ranges, comparisons, concatenation, percent, unary minus, booleans, numbers, strings, errors, complex formulas |
 | Translator (`translate.test.ts`) | 67 | Arithmetic, references, ranges, comparisons, functions, logical, lookup, text, date, complex formulas, parentheticals, generic fallback |
-| ASTTraverser (`ASTTraverser.test.ts`) | 21 | findNode, getSubtreeIds, getParentMap, getNodeIndex, getAncestors, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST round-trip |
+| ASTTraverser (`ASTTraverser.test.ts`) | 17 | findNode, getSubtreeIds, getNodeIndex, subtreeHasReference, computeEvaluationOrder, computeEvaluationStepMap, deserializeAST round-trip |
 | functionDocs (`functionDocs.test.ts`) | 10 | Full-coverage invariant: every `FUNCTION_ARG_NAMES` entry has a summary + docs, syntax generation incl. optional `[]` and variadic `…` |
 | referenceInfo (`referenceInfo.test.ts`) | 10 | describeReference: cells, anchoring, ranges, reversed ranges, columns/rows, sheets, 3D refs + countReferenceOccurrences |
 | formulaHistory (`formulaHistory.test.ts`) | 6 | load/record/dedupe/cap/clear/corrupt-storage handling |
@@ -183,4 +184,4 @@ _No critical known issues at this time. All 226 tests are passing._
 | EvaluatorBar (`EvaluatorBar.test.tsx`) | 7 | Step display, playback callbacks, disabled states at bounds, formula rendering, current-node highlight |
 | ExplanationPanel (`ExplanationPanel.test.tsx`) | 3 | Full translation, copy button, scrollable container |
 | useEvaluation (`useEvaluation.test.ts`) | 6 | Initial state, step bounds, reset, node-id mapping, auto-advance with fake timers |
-| **Total** | **226** | **All passing** |
+| **Total** | **222** | **All passing** |

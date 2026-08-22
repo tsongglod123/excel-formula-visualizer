@@ -97,25 +97,3 @@ export type ASTNodeObject =
   | LiteralNodeObject
   | ParentheticalNodeObject;
 
-/**
- * Pre-discriminator wire format: older serialized ASTs carried no `type` tag
- * because the discriminator lived on the prototype as a getter (stripped by
- * `Object.entries`). Kept so `deserializeAST` can still defensively revive
- * such payloads via structural-shape matching.
- */
-export interface LegacyNodeObject {
-  id: string;
-  name?: string;
-  args?: LegacyNodeObject[];
-  operator?: string;
-  left?: LegacyNodeObject;
-  right?: LegacyNodeObject;
-  reference?: string;
-  range?: { start: string; end: string };
-  value?: number | string | boolean;
-  valueType?: LiteralValueType;
-  expression?: LegacyNodeObject;
-}
-
-/** Anything `deserializeAST` can accept: tagged (current) or untagged (legacy). */
-export type AnyNodeObject = ASTNodeObject | LegacyNodeObject;

@@ -36,21 +36,6 @@ describe('ASTTraverser', () => {
     });
   });
 
-  describe('getParentMap', () => {
-    it('maps each node to its parent', () => {
-      const map = ASTTraverser.getParentMap(root);
-      expect(map.get('n1')).toBe('n3');
-      expect(map.get('n2')).toBe('n1');
-      expect(map.get('n3')).toBe('n0');
-      expect(map.get('n4')).toBe('n3');
-      expect(map.get('n5')).toBe('n0');
-      expect(map.get('n6')).toBe('n0');
-    });
-    it('does not include the root', () => {
-      expect(ASTTraverser.getParentMap(root).has('n0')).toBe(false);
-    });
-  });
-
   describe('getNodeIndex', () => {
     it('indexes every node by id for O(1) lookups', () => {
       const { byId } = ASTTraverser.getNodeIndex(root);
@@ -75,15 +60,6 @@ describe('ASTTraverser', () => {
         parentId = parentById.get(parentId);
       }
       expect(ancestors).toEqual(new Set(['n1', 'n3', 'n0']));
-    });
-  });
-
-  describe('getAncestors', () => {
-    it('returns all ancestors of a node', () => {
-      expect(ASTTraverser.getAncestors(root, 'n2')).toEqual(new Set(['n1', 'n3', 'n0']));
-    });
-    it('returns empty set for the root', () => {
-      expect(ASTTraverser.getAncestors(root, 'n0')).toEqual(new Set());
     });
   });
 

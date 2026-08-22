@@ -171,6 +171,16 @@ Agent skills live in `.agents/skills/` (project-local, tracked via `skills-lock.
 
 **MCP tools in use:** `sequential-thinking` (step-by-step diff analysis in commit workflow), Astro docs + Microsoft docs search/fetch, and `excel-mcp`/`excel-cli` for Excel workbook automation when the task involves producing or updating Excel files.
 
+### Global Operating Rules (`~/.cline/rules/`)
+
+Rules load automatically and apply to all coding (not trigger-based like skills):
+
+| Rule | Scope | When it applies |
+|---|---|---|
+| `ponytail` | global | Lazy senior dev mode: YAGNI-first, reuse before write, shortest working diff; `ponytail:` comments on known-ceiling simplifications; non-trivial logic ships one runnable check |
+
+Project-local rules in `.cline/rules/` (coding-conventions, development, memory-bank, project-context, astro-components, react-components, testing) also load in this repo.
+
 ## Project File Structure
 
 ```
@@ -248,11 +258,8 @@ Agent skills live in `.agents/skills/` (project-local, tracked via `skills-lock.
     │   ├── functionArgs/     # Official Excel argument names
     │   │   ├── index.ts
     │   │   └── functionArgs.ts
-    │   ├── parser.ts         # Backward-compat re-exports
     │   ├── parser.test.ts
-    │   ├── translate.ts      # Backward-compat re-exports
-    │   ├── translate.test.ts
-    │   └── functionArgs.ts   # Backward-compat re-exports
+    │   └── translate.test.ts
     ├── pages/                # File-based routing
     │   ├── 404.astro
     │   ├── about.astro

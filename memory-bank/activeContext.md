@@ -2,9 +2,18 @@
 
 ## Current Focus
 
-The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 226 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups, connection lines, reference tooltips, formula history, structural nesting, compact-by-default pills, and Expand/Collapse-all just shipped. Next up: evaluator keyboard shortcuts, then Playwright E2E.
+The project is in an **active development** phase. All three core layers (Parse, Visualize, Explain) are implemented and functional with 222 passing tests. Current focus is on **visualization polish** and **UX enhancements** — collapsible groups, connection lines, reference tooltips, formula history, structural nesting, compact-by-default pills, and Expand/Collapse-all just shipped. Next up: evaluator keyboard shortcuts, then Playwright E2E.
 
 ## Recent Changes
+
+### Completed: Ponytail Deletion Pass
+
+Removed code that no longer earned its place (behavior-preserving; 222 tests green, astro check 0 errors, build clean):
+
+- **Deleted the three backward-compat shims** `src/lib/parser.ts`, `src/lib/translate.ts`, `src/lib/functionArgs.ts` — module resolution falls through to the directory indexes automatically, so zero import sites changed. Only addition: `export type { ASTNode } from '../ast'` in `parser/index.ts` (the shim was the only source of that type import, used by `VisualizerClient.test.tsx`).
+- **Deleted `ASTTraverser.getParentMap` / `getAncestors`** — zero production callers (only their own tests); superseded by `getNodeIndex`, whose doc comment already told consumers to derive parent/ancestor facts from the index. Their 4 tests removed (226 → 222).
+- **Deleted `ASTTraverser.deserializeLegacy` + `LegacyNodeObject` / `AnyNodeObject` types** — no untagged payload can exist anymore (`type` is an own class field since the discriminated-union refactor; history and share URLs store formula *strings*, never serialized ASTs). `deserializeAST` is now a flat exhaustive switch on the tag.
+- Deliberately **not** touched: 46 KB `FormulaOutline.tsx` monolith and the five single-class AST node files — splitting them adds files without behavior gain (ponytail anti-churn).
 
 ### Completed: Skills-Driven Refactor (typescript-advanced-types + vercel-composition-patterns + tailwind-design-system)
 
@@ -156,6 +165,7 @@ _None active — collapsible groups, connection lines, reference tooltips, formu
 
 ## Important Patterns & Preferences
 
+- **Global `ponytail` operating rule** (`~/.cline/rules/ponytail.md`) applies to all coding: climb the ladder (need it at all? → reuse existing helper/pattern → stdlib → native → installed dep → one line → minimum code); bug fixes target the shared root cause, not per-caller symptoms; prefer deletion over addition and the shortest working diff; mark known-ceiling simplifications (global lock, O(n²) scan, heuristic) with a `ponytail:` comment naming the ceiling and upgrade path; non-trivial logic ships **one runnable check** (an assert-demo or one small test). It is unambiguous guidance, not a skill trigger.
 - React components use `'use client'` directive since they need client-side interactivity
 - Components are hydrated with `client:load` on the visualize page (they're immediately visible)
 - All props to React components must be serializable (no functions or complex objects passed from Astro)

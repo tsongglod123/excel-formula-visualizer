@@ -1,8 +1,6 @@
 export { ASTNode } from './ASTNode';
 export type {
   ASTNodeObject,
-  AnyNodeObject,
-  LegacyNodeObject,
   NodeType,
   FunctionNodeObject,
   OperatorNodeObject,

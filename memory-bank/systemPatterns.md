@@ -71,9 +71,7 @@ Each node class encapsulates its own behavior via polymorphic methods:
 Static utility class providing tree traversal operations:
 - `findNode(root, id)` — find node by id
 - `getSubtreeIds(node)` — all ids in subtree
-- `getParentMap(root)` — node id → parent id map
 - `getNodeIndex(root)` — single-pass `{ byId, parentById }` index for O(1) node + parent lookup (deep primitive: consumers needing several tree facts at once derive from it instead of re-walking via multiple methods)
-- `getAncestors(root, nodeId)` — ancestor id set
 - `subtreeHasReference(node, ref)` — check for reference in subtree
 - `computeEvaluationOrder(root)` — post-order traversal
 - `computeEvaluationStepMap(root)` — node id → step number map
@@ -236,8 +234,8 @@ Props passed to a hydrated framework component (`client:*`) are serialized by As
 
 - The OOP AST relies on `node.type`, `getChildren()`, `getLabel()`, and `instanceof` checks, all of which break on the client if the AST is passed as-is (this blanked the visualizer).
 - **Discriminated wire format:** each node class declares `type` as an **own class field** (`readonly type: NodeType = 'function'`), never a getter — own fields survive `Object.entries`, so the discriminator rides along the island boundary. `NodeType` is a closed union ('function' | 'operator' | 'reference' | 'literal' | 'parenthetical').
-- **Pattern:** revive instances at the island entry point. Each node class has a `static fromObject(<its precise variant>, revive)` factory; `ASTTraverser.deserializeAST(plain)` switches exhaustively on the `type` discriminant (compile-time checked) and recursively revives children; a private `deserializeLegacy` path keeps structural-shape matching for untagged pre-discriminator payloads. `VisualizerClient` wraps the incoming prop with `useMemo(() => raw instanceof ASTNode ? raw : ASTTraverser.deserializeAST(raw), [raw])`.
-- `ASTNodeObject` (in `ASTNode.ts`) is a **discriminated union** (`FunctionNodeObject | OperatorNodeObject | …`) tagged by `type`; `LegacyNodeObject` describes the old all-optional shape.
+- **Pattern:** revive instances at the island entry point. Each node class has a `static fromObject(<its precise variant>, revive)` factory; `ASTTraverser.deserializeAST(plain)` switches exhaustively on the `type` discriminant (compile-time checked) and recursively revives children. `VisualizerClient` wraps the incoming prop with `useMemo(() => raw instanceof ASTNode ? raw : ASTTraverser.deserializeAST(raw), [raw])`.
+- `ASTNodeObject` (in `ASTNode.ts`) is a **discriminated union** (`FunctionNodeObject | OperatorNodeObject | …`) tagged by `type`. The old `LegacyNodeObject` structural-fallback path was deleted — no untagged payload can exist anymore.
 - Only the AST prop needs this; `translation`/`nodeTranslations` are already plain data.
 
 ---
